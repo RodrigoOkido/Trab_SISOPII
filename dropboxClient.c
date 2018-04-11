@@ -2,16 +2,53 @@
   INF01151 - Sistemas Operacionais II N - Semestre 2018/1
   TRABALHO PRÁTICO PARTE 1: THREADS, SINCRONIZAÇÃO E COMUNICAÇÃO
   Prof(a): Alberto Egon Schaeffer Filho
-  Integrantes: Henrique la Porta, Lisiane Aguiar , Rodrigo Okido
+  Integrantes: Douglas Lazaro, Henrique la Porta, Lisiane Aguiar , Rodrigo Okido
 */
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
 #include "dropboxClient.h"
 
 
+#define PORT 4000
 
 int login_server(char *host, int port) {
 
-  //TODO
+  int sockfd;
+	unsigned int length;
+	struct sockaddr_in serv_addr, from;
+	struct hostent *server;
+	char buffer[256];
+
+	if (argc < 2) {
+		fprintf(stderr, "usage %s hostname\n", argv[0]);
+		exit(0);
+	}
+
+	server = gethostbyname(argv[1]);
+
+  // Verifica Host
+	if (server == NULL) {
+        fprintf(stderr,"[ERROR] No host.\n");
+        exit(0);
+    }
+
+  // Executa a operação de abrir o socket
+	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
+		printf("[ERROR] Socket cannot be opened.");
+  }
+
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_port = htons(PORT);
+	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
+	bzero(&(serv_addr.sin_zero), 8);
 
 }
 
@@ -49,3 +86,6 @@ void close_session(){
   //TODO
 
 }
+
+
+int main
