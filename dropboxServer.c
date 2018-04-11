@@ -5,14 +5,8 @@
   Integrantes: Douglas Lazaro, Henrique la Porta, Lisiane Aguiar , Rodrigo Okido
 */
 
-#include <sys/types.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <netdb.h>
-#include <stdio.h>
+
+#include "dropboxUtil.h"
 #include "dropboxServer.h"
 
 
@@ -44,7 +38,7 @@ int main(int argc, char *argv[])
 	int sockfd, n;
 	socklen_t clilen;
 	struct sockaddr_in serv_addr, cli_addr;
-	char buf[256];
+	char buf[BUFFER_TAM];
 
   // Executa a operação de abrir o socket
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
@@ -66,7 +60,7 @@ int main(int argc, char *argv[])
 
 	while (1) {
 		/* receive from socket */
-		n = recvfrom(sockfd, buf, 256, 0, (struct sockaddr *) &cli_addr, &clilen);
+		n = recvfrom(sockfd, buf, BUFFER_TAM, 0, (struct sockaddr *) &cli_addr, &clilen);
 		if (n < 0)
 			printf("[ERROR] on recvfrom");
 		printf("Received a datagram: %s\n", buf);

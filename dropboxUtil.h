@@ -4,3 +4,6 @@
   Prof(a): Alberto Egon Schaeffer Filho
   Integrantes: Douglas Lazaro, Henrique la Porta, Lisiane Aguiar , Rodrigo Okido
 */
+
+#define PORT 4000
+#define BUFFER_TAM 256

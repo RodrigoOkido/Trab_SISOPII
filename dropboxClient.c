@@ -5,19 +5,9 @@
   Integrantes: Douglas Lazaro, Henrique la Porta, Lisiane Aguiar , Rodrigo Okido
 */
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
+#include "dropboxUtil.h"
 #include "dropboxClient.h"
 
-
-#define PORT 4000
 
 int login_server(char *host, int port) {
 
@@ -25,7 +15,7 @@ int login_server(char *host, int port) {
 	unsigned int length;
 	struct sockaddr_in serv_addr, from;
 	struct hostent *server;
-	char buffer[256];
+	char buffer[BUFFER_TAM];
 
 	if (argc < 2) {
 		fprintf(stderr, "usage %s hostname\n", argv[0]);
