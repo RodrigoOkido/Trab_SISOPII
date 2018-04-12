@@ -10,8 +10,6 @@
 #include "dropboxServer.h"
 
 
-#define PORT 4000
-
 void sync_server(){
 
   //TODO

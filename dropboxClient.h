@@ -25,7 +25,7 @@
   file_info[MAXFILES] – metadados de cada arquivo que o cliente
   possui no servidor.
   logged_in – cliente está logado ou não.
-*/
+
 struct	client	{
   int	devices[2];
   char	userid[MAXNAME];
@@ -40,7 +40,7 @@ struct	file_info	{
 	char	last_modified[MAXNAME];
 	int	size;
 }
-
+*/
 
 /**
   Estabelece uma sessão entre o cliente com o servidor.

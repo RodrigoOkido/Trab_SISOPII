@@ -5,5 +5,8 @@
   Integrantes: Douglas Lazaro, Henrique la Porta, Lisiane Aguiar , Rodrigo Okido
 */
 
-#define PORT 4000
-#define BUFFER_TAM 256
+#define PORT 		4000
+#define BUFFER_TAM 	256
+
+#define MAXNAME		256
+#define MAXFILES	10

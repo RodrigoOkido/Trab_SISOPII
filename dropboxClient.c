@@ -11,18 +11,14 @@
 
 int login_server(char *host, int port) {
 
-  int sockfd;
+  int sockfd,n ;
 	unsigned int length;
 	struct sockaddr_in serv_addr, from;
 	struct hostent *server;
 	char buffer[BUFFER_TAM];
 
-	if (argc < 2) {
-		fprintf(stderr, "usage %s hostname\n", argv[0]);
-		exit(0);
-	}
 
-	server = gethostbyname(argv[1]);
+	server = gethostbyname(host);
 
   // Verifica Host
 	if (server == NULL) {
@@ -40,6 +36,23 @@ int login_server(char *host, int port) {
 	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
 	bzero(&(serv_addr.sin_zero), 8);
 
+
+	printf("Enter the message: ");
+	bzero(buffer, BUFFER_TAM);
+	fgets(buffer, BUFFER_TAM, stdin);
+
+	n = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	if (n < 0) 
+		printf("ERROR sendto");
+	
+	length = sizeof(struct sockaddr_in);
+	n = recvfrom(sockfd, buffer, BUFFER_TAM, 0, (struct sockaddr *) &from, &length);
+	if (n < 0)
+		printf("ERROR recvfrom");
+
+	printf("Got an ack: %s\n", buffer);
+	
+	close(sockfd);
 }
 
 
@@ -78,4 +91,13 @@ void close_session(){
 }
 
 
-int main
+int main(int argc, char *argv[]){
+	if (argc < 2) {
+		fprintf(stderr, "usage %s hostname\n", argv[0]);
+		exit(0);
+	}
+
+	int i = login_server(argv[1], PORT);
+
+	return 0;
+}
