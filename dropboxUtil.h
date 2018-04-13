@@ -9,8 +9,6 @@
 #include <stdlib.h>
 
 #define PORT 		4000
-#define USER_BUFFER 15 //Prints the user IP on the Main Menu
-
 #define BUFFER_TAM 	256
 
 #define MAXNAME		256
