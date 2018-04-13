@@ -5,8 +5,16 @@
   Integrantes: Douglas Lazaro, Henrique la Porta, Lisiane Aguiar , Rodrigo Okido
 */
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #define PORT 		4000
+#define USER_BUFFER 15 //Prints the user IP on the Main Menu
+
 #define BUFFER_TAM 	256
 
 #define MAXNAME		256
 #define MAXFILES	10
+
+
+void showMenu();

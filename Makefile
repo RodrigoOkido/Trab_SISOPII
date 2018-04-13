@@ -1,10 +1,13 @@
-dropbox: dropboxServer dropboxClient
+dropbox: dropboxServer.o dropboxClient.o dropboxUtil.o
 
-dropboxServer: dropboxServer.c
-	gcc -o dropboxServer dropboxServer.c
+dropboxServer.o: dropboxServer.c dropboxUtil.c
+	gcc -o dropboxServer dropboxServer.c dropboxUtil.c
 
-dropboxClient: dropboxClient.c
-	gcc -o dropboxClient dropboxClient.c
+dropboxClient.o: dropboxClient.c dropboxUtil.c
+	gcc -o dropboxClient dropboxClient.c dropboxUtil.c
+
+dropboxUtil.o: dropboxUtil.c
+	gcc -c dropboxUtil.c
 
 clean:
-	rm dropboxServer dropboxClient
+	rm dropboxClient dropboxServer *.o

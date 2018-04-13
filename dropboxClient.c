@@ -8,14 +8,18 @@
 #include "dropboxUtil.h"
 #include "dropboxClient.h"
 
+int sockfd, n ;
+unsigned int length;
+struct sockaddr_in serv_addr, from;
+struct hostent *server;
+char buffer[BUFFER_TAM];
+char user_cmd[50];
+
+
 
 int login_server(char *host, int port) {
 
-  int sockfd,n ;
-	unsigned int length;
-	struct sockaddr_in serv_addr, from;
-	struct hostent *server;
-	char buffer[BUFFER_TAM];
+  //Show the user IP when connected to the server
 
 
 	server = gethostbyname(host);
@@ -34,25 +38,10 @@ int login_server(char *host, int port) {
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(PORT);
 	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
+
 	bzero(&(serv_addr.sin_zero), 8);
 
-
-	printf("Enter the message: ");
-	bzero(buffer, BUFFER_TAM);
-	fgets(buffer, BUFFER_TAM, stdin);
-
-	n = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-	if (n < 0) 
-		printf("ERROR sendto");
-	
-	length = sizeof(struct sockaddr_in);
-	n = recvfrom(sockfd, buffer, BUFFER_TAM, 0, (struct sockaddr *) &from, &length);
-	if (n < 0)
-		printf("ERROR recvfrom");
-
-	printf("Got an ack: %s\n", buffer);
-	
-	close(sockfd);
+  return 1;
 }
 
 
@@ -91,13 +80,69 @@ void close_session(){
 }
 
 
+//FUNCAO TEMPORARIA (EXEMPLO PROFESSOR)
+void test(){
+
+  printf("\n\nEnter the message: ");
+  bzero(buffer, BUFFER_TAM);
+  fgets(buffer, sizeof(buffer), stdin);
+
+  n = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+  if (n < 0)
+    printf("ERROR sendto\n");
+
+  length = sizeof(struct sockaddr_in);
+  n = recvfrom(sockfd, buffer, BUFFER_TAM, 0, (struct sockaddr *) &from, &length);
+  if (n < 0)
+    printf("ERROR recvfrom\n");
+
+  printf("Got an ack: %s\n", buffer);
+
+  printf("press enter ");
+  fgets(user_cmd, sizeof(stdin), stdin);
+  close(sockfd);
+
+}
+
+
 int main(int argc, char *argv[]){
 	if (argc < 2) {
 		fprintf(stderr, "usage %s hostname\n", argv[0]);
 		exit(0);
 	}
 
-	int i = login_server(argv[1], PORT);
+	int login = login_server(argv[1], PORT);
+
+  if(login){
+      int start = 1;
+
+      while(start){
+        showMenu();
+
+
+        printf("cmd > ");
+        fgets(user_cmd, sizeof(stdin), stdin);
+
+        if(strncmp(user_cmd,"test",4)== 0){
+          test();
+        }
+
+        else if(strncmp(user_cmd,"exit",4) == 0){
+          start = 0;
+        }
+
+        else {
+            printf("INVALID COMMAND \n");
+            printf("Press enter...\n");
+            char enter = 0;
+            while (enter != '\r' && enter != '\n') { enter = getchar(); }
+
+        }
+
+
+      }
+      printf("SESSION ENDED! \n");
+  }
 
 	return 0;
 }
