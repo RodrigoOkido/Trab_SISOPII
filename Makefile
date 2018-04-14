@@ -1,3 +1,7 @@
+all: dropbox
+	# TO DO run dropboxServer
+	# TO DO run dropboxClient
+	
 dropbox: dropboxServer.o dropboxClient.o dropboxUtil.o
 
 dropboxServer.o: dropboxServer.c dropboxUtil.c
