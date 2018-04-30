@@ -19,8 +19,6 @@ char user_cmd[50];
 
 int login_server(char *host, int port) {
 
-  //Show the user IP when connected to the server
-
 
 	server = gethostbyname(host);
 
@@ -54,7 +52,25 @@ void sync_client() {
 
 void send_file(char *file){
 
-  //TODO
+	if (sizeof(file) > BUFFER_TAM){
+
+	}
+
+
+	n = sendto(sockfd, file, strlen(file), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	if (n < 0)
+		printf("ERROR sendto\n");
+
+	length = sizeof(struct sockaddr_in);
+	n = recvfrom(sockfd, file, BUFFER_TAM, 0, (struct sockaddr *) &from, &length);
+	if (n < 0)
+		printf("ERROR recvfrom\n");
+
+	printf("File ( %s ) uploaded sucessfully!\n", file);
+
+	printf("press enter ");
+	fgets(user_cmd, sizeof(stdin), stdin);
+	close(sockfd);
 
 }
 
@@ -98,8 +114,9 @@ void test(){
 
   printf("Got an ack: %s\n", buffer);
 
-  printf("press enter ");
-  fgets(user_cmd, sizeof(stdin), stdin);
+	printf("Press enter...\n");
+	char enter = 0;
+	while (enter != '\r' && enter != '\n') { enter = getchar(); }
   close(sockfd);
 
 }
@@ -122,6 +139,7 @@ int main(int argc, char *argv[]){
 
         printf("cmd > ");
         fgets(user_cmd, sizeof(stdin), stdin);
+
 
         if(strncmp(user_cmd,"test",4)== 0){
           test();

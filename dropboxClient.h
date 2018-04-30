@@ -17,31 +17,6 @@
 #include <pthread.h>
 
 
-
-/**
-  int devices[2] – associado aos dispositivos do usuário
-  userid[MAXNAME] – id do usuário no servidor, que deverá ser
-  único. Informado pela linha de comando.
-  file_info[MAXFILES] – metadados de cada arquivo que o cliente
-  possui no servidor.
-  logged_in – cliente está logado ou não.
-
-struct	client	{
-  int	devices[2];
-  char	userid[MAXNAME];
-  struct	file_info[MAXFILES];
-  int	logged_in;
-}
-
-
-struct	file_info	{
-	char	name[MAXNAME];
-	char	extension[MAXNAME];
-	char	last_modified[MAXNAME];
-	int	size;
-}
-*/
-
 /**
   Estabelece uma sessão entre o cliente com o servidor.
   @param host endereço do servidor

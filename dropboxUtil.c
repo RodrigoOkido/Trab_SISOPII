@@ -8,7 +8,10 @@
 #include "dropboxUtil.h"
 
 
-void showMenu(){
+int total_client;
+CLIENT* client_list;
+
+void showMenu() {
   system("clear");
   printf(">>>>> Welcome to the Dropbox! <<<<<\n\n");
   printf("[1] Upload a file (cmd: upload <path/filename.ext)\n");
@@ -19,4 +22,38 @@ void showMenu(){
   printf("[6] (TEMPORARIO) Teste de mensagem cliente/servidor (cmd: test) <= SO FUNCIONA ESSE POR ENQUANTO!\n");
   printf("[7] Exit (cmd: exit)\n\n");
 
+}
+
+
+void iniciateList(){
+  total_client = 0;
+  client_list = malloc(MAXCLIENTS * sizeof(CLIENT));
+}
+
+
+
+void createClient(char* user_id) {
+  CLIENT* newClient = malloc(sizeof(CLIENT));
+  newClient->devices[0]= 0;
+  newClient->devices[1]= 0;
+  newClient->devices[2]= 0;
+  newClient->userid[sizeof(newClient->userid)] = *user_id;
+  newClient->logged_in = 0;
+
+  client_list[total_client] = *newClient;
+  total_client++;
+}
+
+
+int searchClient(char* userid) {
+
+  int i;
+
+  for (i = 0; i < total_client ; i++){
+    if (strcmp(client_list[i].userid, userid) == 0) {
+      return 1;
+    }
+  }
+
+  return 0;
 }

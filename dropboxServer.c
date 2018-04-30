@@ -10,6 +10,12 @@
 #include "dropboxServer.h"
 
 
+int sockfd, n;
+socklen_t clilen;
+struct sockaddr_in serv_addr, cli_addr;
+char buf[BUFFER_TAM];
+
+
 void sync_server(){
 
   //TODO
@@ -17,9 +23,17 @@ void sync_server(){
 }
 
 
-void receive_file(char *file){
+void receive_file(char *file) {
 
-  //TODO
+	n = recvfrom(sockfd, file, BUFFER_TAM, 0, (struct sockaddr *) &cli_addr, &clilen);
+	if (n < 0)
+		printf("[ERROR] on recvfrom");
+	printf("Received a datagram: %s\n", buf);
+
+	/* send to socket */
+	n = sendto(sockfd, "Got your message\n", 17, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+	if (n  < 0)
+		printf("[ERROR] Message not received");
 
 }
 
@@ -33,10 +47,7 @@ void send_file(char *file){
 
 int main(int argc, char *argv[])
 {
-	int sockfd, n;
-	socklen_t clilen;
-	struct sockaddr_in serv_addr, cli_addr;
-	char buf[BUFFER_TAM];
+
 
   // Executa a operação de abrir o socket
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
