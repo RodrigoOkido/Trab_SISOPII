@@ -165,7 +165,7 @@ int main(int argc, char *argv[]){
 					user_cmd[strlen(user_cmd) -1] = '\0';
 
 					int code = parseCommand(user_cmd);
-					char *directory; //Used only if the action is upload/download a file.
+					char *directory; //Used only if the action is upload/download/delete a file.
 													 //Takes the directory of the file.
 
 					if (code == 1){
@@ -175,6 +175,11 @@ int main(int argc, char *argv[]){
 
 					else if (code == 2){
 						directory = strndup(user_cmd+9, strlen(user_cmd));
+						fprintf(stderr, "%s\n", directory);
+					}
+
+					else if (code == 3){
+						directory = strndup(user_cmd+7, strlen(user_cmd));
 						fprintf(stderr, "%s\n", directory);
 					}
 
