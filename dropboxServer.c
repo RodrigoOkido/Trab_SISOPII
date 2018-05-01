@@ -69,13 +69,16 @@ int main(int argc, char *argv[])
 
 	while (1) {
 		/* receive from socket */
-		n = recvfrom(sockfd, buf, BUFFER_TAM, 0, (struct sockaddr *) &cli_addr, &clilen);
+		n = recvfrom(sockfd, buf, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);
 		if (n < 0)
 			printf("[ERROR] on recvfrom");
-		printf("Received a datagram: %s\n", buf);
+
+		printf("\n\nReceived packet from %s:%d\n", inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
+		printf("Received a datagram:\n%s", buf);
 
 		/* send to socket */
 		n = sendto(sockfd, "Got your message\n", 17, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+		bzero(buf, sizeof(buf));
 		if (n  < 0)
 			printf("[ERROR] Message not received");
 	}
