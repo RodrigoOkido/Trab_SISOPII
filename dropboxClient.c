@@ -7,6 +7,8 @@
 
 #include "dropboxUtil.h"
 #include "dropboxClient.h"
+#include <sys/types.h>
+#include <sys/inotify.h>
 
 int sockfd, n ;
 unsigned int length;
@@ -14,8 +16,17 @@ struct sockaddr_in serv_addr, from;
 struct hostent *server;
 char send_buffer[BUFFER_TAM];
 char user_cmd[80];
+char directory[50]; //
+int notifyStart;
+int watchList;
 
+void startNotify () {
 
+	notifyStart = inotify_init();
+	
+	watchList = inotify_add_watch (notifyStart, directory, IN_CREATE | IN_DELETE | IN_MODIFY | IN_CLOSE_WRITE | IN_MOVED_FROM); // por enquanto ve apenas se foi criado arquivo, deletado ou modificado
+
+}
 
 int login_server(char *host, int port) {
 
@@ -46,6 +57,41 @@ int login_server(char *host, int port) {
 
 void sync_client() {
 
+	int length, i = 0;
+	char buffer[EVENT_BUF_LEN];
+
+	while (1) { //fica verificando se alterou o diretorio
+		length = read(notifyStart, buffer, EVENT_BUF_LEN);
+
+		
+		if (notifyStart < 0) {
+			perror("inotify_init");
+		}
+		 while ( i < length ) {     
+
+		      struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];     
+
+			if ( event->len ) {
+			      if ( event->mask & IN_CREATE ) {
+			
+				  printf( "New file %s created.\n", event->name );
+			
+			      }
+			      else if ( event->mask & IN_DELETE  || event->mask & IN_MOVED_FROM) {
+
+				  printf( "File %s deleted.\n", event->name );
+			       }
+			      else if ( event->mask & IN_MODIFY || event->mask & IN_CLOSE_WRITE) {
+				   printf( "File %s modified.\n", event->name );
+			      }
+			      
+			    }
+	   		 i += EVENT_SIZE + event->len;
+ 		 }
+	i = 0;
+
+	sleep(10); //verificar a cada 10 segundos
+}
 	return;
 
 }
