@@ -64,7 +64,7 @@ int createUserDir(char* userId){
     char aux[272];
 
     strcpy(aux,homeDir);
-    strcat(aux, user);
+    strcat(aux, userId);
 
     //cria o diretório com permissão de leitura/escrita/execução
     int i = mkdir(aux, 0700);
