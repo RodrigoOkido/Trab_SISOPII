@@ -13,200 +13,191 @@ unsigned int length;
 struct sockaddr_in serv_addr, from;
 struct hostent *server;
 char send_buffer[BUFFER_TAM];
-char user_cmd[50];
+char user_cmd[80];
 
 
 
 int login_server(char *host, int port) {
 
+		server = gethostbyname(host);
 
-	server = gethostbyname(host);
+	  // Verifica Host
+		if (server == NULL) {
+	        fprintf(stderr,"[ERROR] No host.\n");
+	        exit(0);
+	    }
 
-  // Verifica Host
-	if (server == NULL) {
-        fprintf(stderr,"[ERROR] No host.\n");
-        exit(0);
-    }
+	  // Executa a operação de abrir o socket
+		if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
+			printf("[ERROR] Socket cannot be opened.");
+	  }
 
-  // Executa a operação de abrir o socket
-	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-		printf("[ERROR] Socket cannot be opened.");
-  }
+		serv_addr.sin_family = AF_INET;
+		serv_addr.sin_port = htons(PORT);
+		serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
 
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(PORT);
-	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
-
-	bzero(&(serv_addr.sin_zero), 8);
+		bzero(&(serv_addr.sin_zero), 8);
 
 
-  return 1;
+	  return 1;
 }
+
 
 
 void sync_client() {
 
-  //TODO
+	return;
 
 }
+
 
 
 void send_file(char *file){
 
-	FILE *sendFile = fopen(file, "rb");
-  int file_length;
-	int packet, read_buffer;
+		FILE *sendFile = fopen(file, "rb");
+	  int file_length;
+		int packet, read_buffer;
 
-	if (sendFile == NULL){
-		printf("File not found..");
-		return;
-	}
-
-	fseek(sendFile, 0, SEEK_END); //Seek the pointer to the end of the file to check the last byte.
-	file_length = ftell(sendFile); //Store the file length of the received file.
-  fseek(sendFile, 0, SEEK_SET); //Turn the pointer to the beginning.
-
-	packet = 1;
-
-	if (file_length < BUFFER_TAM) {
-
-		n = sendto(sockfd, send_buffer, strlen(send_buffer), MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		if (n < 0)
-			printf("ERROR sendto\n");
-
-	} else {
-
-		while(!feof(sendFile)) {
-
-			read_buffer = fread(send_buffer, 1, sizeof(send_buffer)-1, sendFile);
-			
-			//Send data through our socket
-			do{
-				n = sendto(sockfd, send_buffer, read_buffer, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-			} while(n < 0);
-
-			printf("Packet Number: %i\n",packet);
-			printf("Packet Size Sent: %i\n",read_buffer);
-			printf(" \n");
-			printf(" \n");
-
-
-			packet++;
-
-			//Zero out our send buffer
-			bzero(send_buffer, sizeof(send_buffer));
+		if (sendFile == NULL){
+			printf("File not found..");
+			return;
 		}
 
-	}
+		fseek(sendFile, 0, SEEK_END); //Seek the pointer to the end of the file to check the last byte number.
+		file_length = ftell(sendFile); //Store the file length of the received file.
+	  fseek(sendFile, 0, SEEK_SET); //Turn the pointer to the beginning.
+
+		packet = 1;
+
+		if (file_length < BUFFER_TAM) {
+
+			n = sendto(sockfd, send_buffer, strlen(send_buffer), MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+			if (n < 0)
+				printf("ERROR sendto\n");
+
+		} else {
+
+			while(!feof(sendFile)) {
+
+				read_buffer = fread(send_buffer, 1, sizeof(send_buffer)-1, sendFile);
+
+				//Send data through our socket
+				do{
+					n = sendto(sockfd, send_buffer, read_buffer, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+				} while(n < 0);
+
+				printf("\n");
+				printf("Packet Number: %i\n",packet);
+				printf("Packet Size Sent: %i\n",read_buffer);
+				printf("\n");
+
+				packet++;
+
+				//Zero out our send buffer
+				bzero(send_buffer, sizeof(send_buffer));
+			}
+
+		}
 
 
-	length = sizeof(struct sockaddr_in);
-	n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
-	if (n < 0)
-		printf("ERROR recvfrom\n");
+		length = sizeof(struct sockaddr_in);
+		n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
 
-	printf("File ( %s ) uploaded sucessfully!\n", file);
+		if (n < 0)
+			printf("ERROR recvfrom\n");
 
-	printf("Press enter...\n");
-	char enter = 0;
-	while (enter != '\r' && enter != '\n') { enter = getchar(); }
-	close(sockfd);
+		printf("File ( %s ) uploaded sucessfully!\n", file);
+
+
+		close(sockfd);
 
 }
+
 
 
 void get_file(char *file){
 
-  //TODO
+  return;
 
 }
+
 
 
 void delete_file(char *file){
 
-  //TODO
+  return;
 
 }
+
 
 
 void close_session(){
 
-  //TODO
+		printf("closing conection with socket...\n");
+		close(sockfd);
+		printf("Session ended successfully! \n");
+		exit(0);
 
 }
 
-
-//FUNCAO TEMPORARIA (EXEMPLO PROFESSOR)
-void test(){
-
-  printf("\n\nEnter the message: ");
-  bzero(send_buffer, BUFFER_TAM);
-  fgets(send_buffer, sizeof(send_buffer), stdin);
-
-  n = sendto(sockfd, send_buffer, strlen(send_buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-  if (n < 0)
-    printf("ERROR sendto\n");
-
-  length = sizeof(struct sockaddr_in);
-  n = recvfrom(sockfd, send_buffer, BUFFER_TAM, 0, (struct sockaddr *) &from, &length);
-  if (n < 0)
-    printf("ERROR recvfrom\n");
-
-
-	printf("Got packet from %s\n",inet_ntoa(serv_addr.sin_addr));
-  printf("Packet is %d bytes long\n",n);
-  printf("Got an ack: %s\n", send_buffer);
-
-	printf("Press enter...\n");
-	char enter = 0;
-	while (enter != '\r' && enter != '\n') { enter = getchar(); }
-  close(sockfd);
-
-}
 
 
 int main(int argc, char *argv[]){
-	if (argc < 2) {
-		fprintf(stderr, "usage %s hostname\n", argv[0]);
-		exit(0);
-	}
+		if (argc < 2) {
+			fprintf(stderr, "To connect use: ./dropbox {userid} {user_adress} {PORT}\n");
+			exit(0);
+		}
 
-	int login = login_server(argv[1], PORT);
+		int login = login_server(argv[1], PORT);
 
-  if(login){
-      int start = 1;
+	  if(login){
 
-      while(start){
-        showMenu();
-
-
-        printf("cmd > ");
-        fgets(user_cmd, sizeof(stdin), stdin);
-
-				if(strncmp(user_cmd,"upload",6)== 0){
-          send_file("test.txt");
-        }
-
-        if(strncmp(user_cmd,"test",4)== 0){
-          test();
-        }
-
-        else if(strncmp(user_cmd,"exit",4) == 0){
-          start = 0;
-        }
-
-        else {
-            printf("INVALID COMMAND \n");
-            printf("Press enter...\n");
-            char enter = 0;
-            while (enter != '\r' && enter != '\n') { enter = getchar(); }
-
-        }
+				int start = 1;
+				sync_client(); //Sync client files with the server
 
 
-      }
-      printf("SESSION ENDED! \n");
-  }
+	      while(start){
+	        showMenu();
 
-	return 0;
+
+	        printf("cmd > ");
+	        fgets(user_cmd, sizeof(user_cmd), stdin);
+					user_cmd[strlen(user_cmd) -1] = '\0';
+
+					int code = parseCommand(user_cmd);
+					char *directory; //Used only if the action is upload/download a file.
+													 //Takes the directory of the file.
+
+					if (code == 1){
+						directory = strndup(user_cmd+7, strlen(user_cmd));
+						fprintf(stderr, "%s\n", directory);
+					}
+
+					else if (code == 2){
+						directory = strndup(user_cmd+9, strlen(user_cmd));
+						fprintf(stderr, "%s\n", directory);
+					}
+
+					switch(code){
+						case 1: send_file(directory); break;
+						case 2: get_file(directory); break;
+						case 3: break;
+						case 4: break;
+						case 5: break;
+						case 6: break;
+						case 7: close_session(); start = 0; break;
+						default: printf("\nINVALID COMMAND \n"); break;
+					}
+
+					printf("\n\nPress enter...\n");
+					char enter = 0;
+					while (enter != '\r' && enter != '\n') {
+						enter = getchar();
+					}
+
+	      }
+
+	  }
+
+		return 0;
 }

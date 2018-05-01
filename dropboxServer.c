@@ -25,15 +25,16 @@ void sync_server(){
 
 void receive_file(char *file) {
 
-	n = recvfrom(sockfd, file, BUFFER_TAM, 0, (struct sockaddr *) &cli_addr, &clilen);
-	if (n < 0)
-		printf("[ERROR] on recvfrom");
-	printf("Received a datagram: %s\n", buf);
+	// n = recvfrom(sockfd, file, BUFFER_TAM, 0, (struct sockaddr *) &cli_addr, &clilen);
+	// if (n < 0)
+	// 	printf("[ERROR] on recvfrom");
+	// printf("Received a datagram: %s\n", buf);
+	//
+	// /* send to socket */
+	// n = sendto(sockfd, "Got your message\n", 17, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+	// if (n  < 0)
+	// 	printf("[ERROR] Message not received");
 
-	/* send to socket */
-	n = sendto(sockfd, "Got your message\n", 17, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
-	if (n  < 0)
-		printf("[ERROR] Message not received");
 
 }
 
