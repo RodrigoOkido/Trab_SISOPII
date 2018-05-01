@@ -21,7 +21,7 @@
 #define DATE 20
 #define MAXCLIENTS 150
 
-
+const char homeDir[] = "./temp/sync_dir_"; //===> ALTERAR PARA /home/sync_dir_ <=======//
 
 /**
   name[MAXNAME] refere-se ao nome do arquivo.
@@ -58,3 +58,13 @@ typedef struct client	{
 void showMenu();
 void createClient();
 int searchClient();
+
+/**
+  Cria um diretório na máquina referente ao usuário
+  @param userId
+  @return >  0 - operação OK
+  @return == 0 - Pasta já existe
+  @return <  0 - ERROR
+*/
+int createUserDir(char* userId);
+

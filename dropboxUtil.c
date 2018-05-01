@@ -57,3 +57,20 @@ int searchClient(char* userid) {
 
   return 0;
 }
+
+
+int createUserDir(char* userId){
+    //aux = MAXNAME + "./home/sync_dir_" => 272
+    char aux[272];
+
+    strcpy(aux,homeDir);
+    strcat(aux, user);
+
+    //cria o diretório com permissão de leitura/escrita/execução
+    int i = mkdir(aux, 0700);
+
+    if(i == -1) return 0; //Pasta já existe
+    if(i != 0) { printf("[ERROR] createUserDir() -> Ao criar a pasta %s (CODE -2)\n", aux); return -2; // ERRO no mkdir
+
+    return 1; //Pasta foi criada tudo OK
+}
