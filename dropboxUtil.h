@@ -8,6 +8,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <pthread.h>
+#include <netinet/in.h>
+#include <sys/inotify.h>
 #include <arpa/inet.h>
 #include <time.h>
 
@@ -18,14 +25,20 @@
 #define MAXFILES	20
 
 #define UNIQUE_ID 10
-#define EXT 4
+#define EXT 5
 #define DATE 18
 #define MAXCLIENTS 150
 
 
+//USER INPUT COMMAND CODE
 int command_code; //Store the command code of the action wanted by user.
+
+
+//FILE VARIABLES CONTROLLER
 char filename[MAXNAME]; //Char array to take the name of the file created (activated in PARSEFILE() function below).
 char extension[EXT]; //Pointer to get the extension of the file created (activated in PARSEFILE() function below).
+int file_length; //Stores the length of the new file.
+
 
 //const char homeDir[] = "./temp/sync_dir_"; //===> ALTERAR PARA /home/sync_dir_ <=======//
 
@@ -111,6 +124,16 @@ int parseCommand(char cmd[]);
 	@return return < 0 - SOMETHING WRONG
 */
 int parseFile(char* File);
+
+
+
+/**
+ * Create a new file.
+ *
+ * @return return 0 - new file created successfully
+ * @return return < 0 - something wrong
+ */
+int createNewFile();
 
 
 

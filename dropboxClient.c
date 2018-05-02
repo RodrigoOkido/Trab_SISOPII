@@ -7,8 +7,7 @@
 
 #include "dropboxUtil.h"
 #include "dropboxClient.h"
-#include <sys/types.h>
-#include <sys/inotify.h>
+
 
 int sockfd, n ;
 unsigned int length;
@@ -23,7 +22,7 @@ int watchList;
 void startNotify () {
 
 	notifyStart = inotify_init();
-	
+
 	watchList = inotify_add_watch (notifyStart, directory, IN_CREATE | IN_DELETE | IN_MODIFY | IN_CLOSE_WRITE | IN_MOVED_FROM); // por enquanto ve apenas se foi criado arquivo, deletado ou modificado
 
 }
@@ -57,41 +56,40 @@ int login_server(char *host, int port) {
 
 void sync_client() {
 
-	int length, i = 0;
-	char buffer[EVENT_BUF_LEN];
+		int length, i = 0;
+		char buffer[EVENT_BUF_LEN];
 
-	while (1) { //fica verificando se alterou o diretorio
-		length = read(notifyStart, buffer, EVENT_BUF_LEN);
+		while (1) { //fica verificando se alterou o diretorio
+				length = read(notifyStart, buffer, EVENT_BUF_LEN);
 
-		
-		if (notifyStart < 0) {
-			perror("inotify_init");
-		}
-		 while ( i < length ) {     
 
-		      struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];     
+				if (notifyStart < 0) {
+						perror("inotify_init");
+				}
 
-			if ( event->len ) {
-			      if ( event->mask & IN_CREATE ) {
-			
-				  printf( "New file %s created.\n", event->name );
-			
-			      }
-			      else if ( event->mask & IN_DELETE  || event->mask & IN_MOVED_FROM) {
+				while ( i < length ) {
 
-				  printf( "File %s deleted.\n", event->name );
-			       }
-			      else if ( event->mask & IN_MODIFY || event->mask & IN_CLOSE_WRITE) {
-				   printf( "File %s modified.\n", event->name );
-			      }
-			      
-			    }
-	   		 i += EVENT_SIZE + event->len;
- 		 }
-	i = 0;
+						struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
 
-	sleep(10); //verificar a cada 10 segundos
-}
+						if ( event->len ) {
+							if ( event->mask & IN_CREATE ) {
+									printf( "New file %s created.\n", event->name );
+							}
+
+						else if ( event->mask & IN_DELETE  || event->mask & IN_MOVED_FROM) {
+							printf( "File %s deleted.\n", event->name );
+						}
+						else if ( event->mask & IN_MODIFY || event->mask & IN_CLOSE_WRITE) {
+							printf( "File %s modified.\n", event->name );
+						}
+						}
+
+						i += EVENT_SIZE + event->len;
+				}
+
+		i = 0;
+		sleep(10); //verificar a cada 10 segundos
+	}
 	return;
 
 }
@@ -101,50 +99,33 @@ void sync_client() {
 void send_file(char *file){
 
 		FILE *sendFile = fopen(file, "rb");
-	  int file_length;
-		int packet, read_buffer;
+		int packet, read_buffer; //packet - Counter of packets needed to send the file.
+														 //read_buffer - buffer which will receive the content of the file.
 
 		if (sendFile == NULL){
 			printf("File not found..");
 			return;
 		}
 
-
-		parseFile(file); //Parse the filename and file extension (check dropboxUtil.c for this function);
-
-
-		//PREPARING NEW FILE
-		FILE_INFO* newFile = malloc(sizeof(FILE_INFO));
-		strncpy(newFile->name, filename, MAXNAME-1);
-		newFile->name[MAXNAME-1] = 0;
-		strncpy(newFile->extension, extension, EXT-1);
-		newFile->extension[EXT-1] = 0;
-
-		time_t rawtime;
-		struct tm *info;
-
-		time( &rawtime );
-		info = localtime( &rawtime );
-		strftime(newFile->last_modified, DATE,"%x - %I:%M%p", info);
-
-		//DEBUG
-		fprintf(stderr,"NAME: |%s|\n", newFile->name );
-		fprintf(stderr,"EXT: |%s|\n", newFile->extension );
-		fprintf(stderr,"TIME: |%s|\n", newFile->last_modified ); // MES/DIA/ANO HORA:MIN
-		//ENDDEBUG
-
 		fseek(sendFile, 0, SEEK_END); //Seek the pointer to the end of the file to check the last byte number.
 		file_length = ftell(sendFile); //Store the file length of the received file.
-	  fseek(sendFile, 0, SEEK_SET); //Turn the pointer to the beginning.
+		fseek(sendFile, 0, SEEK_SET); //Turn the pointer to the beginning.
 
-		packet = 1;
+
+		parseFile(file); //Parse the filename and file extension (check dropboxUtil.c for this function);
+		createNewFile(); //Create new file with the parsed file content (check dropboxUtil.c for this function);
+
+
+		packet = 1; //Packet number.
 
 		if (file_length < BUFFER_TAM) {
+				read_buffer = fread(send_buffer, 1, file_length, sendFile);
+				n = sendto(sockfd, send_buffer, strlen(send_buffer), MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 
-			n = sendto(sockfd, send_buffer, strlen(send_buffer), MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-			if (n < 0)
-				printf("ERROR sendto\n");
+				if (n < 0)
+					printf("ERROR sendto\n");
 
+				bzero(send_buffer, sizeof(send_buffer));
 		} else {
 
 			while(!feof(sendFile)) {
@@ -152,8 +133,8 @@ void send_file(char *file){
 				read_buffer = fread(send_buffer, 1, sizeof(send_buffer)-1, sendFile);
 
 				//Send data through our socket
-				do{
-					n = sendto(sockfd, send_buffer, read_buffer, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+				do {
+						n = sendto(sockfd, send_buffer, read_buffer, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 				} while(n < 0);
 
 				printf("\n");
@@ -177,7 +158,9 @@ void send_file(char *file){
 			printf("ERROR recvfrom\n");
 
 		printf("File ( %s ) uploaded sucessfully!\n", file);
+		file_length = 0;
 
+		fclose(sendFile);
 
 		close(sockfd);
 
@@ -223,7 +206,7 @@ int main(int argc, char *argv[]){
 	  if(login){
 
 				int start = 1;
-				sync_client(); //Sync client files with the server
+				//sync_client(); //Sync client files with the server
 
 
 	      while(start){

@@ -10,7 +10,7 @@
 
 int total_client;
 CLIENT* client_list;
-
+CLIENT* actual;
 
 void showMenu() {
 
@@ -58,11 +58,11 @@ int searchClient(char* userid) {
     int i;
     for (i = 0; i < total_client ; i++){
       if (strcmp(client_list[i].userid, userid) == 0) {
-        return 1;
+        return i;
       }
     }
 
-    return 0;
+    return -1;
 }
 
 
@@ -123,7 +123,7 @@ int parseFile(char* file){
     }
 
     int file_name_size = pointIndex-lastSlashIndex;
-    int file_ext = sizeof(file) - pointIndex;
+    int file_ext = strlen(file) - pointIndex;
 
     char name [file_name_size];
     if (lastSlashIndex == 0){
@@ -142,6 +142,37 @@ int parseFile(char* file){
 
 }
 
+
+
+int createNewFile(){
+
+    //PREPARING NEW FILE
+    FILE_INFO* newFile = malloc(sizeof(FILE_INFO));
+    strncpy(newFile->name, filename, MAXNAME-1);
+    newFile->name[MAXNAME-1] = 0;
+    strncpy(newFile->extension, extension, EXT-1);
+    newFile->extension[EXT-1] = 0;
+
+    time_t rawtime;
+    struct tm *info;
+
+    time( &rawtime );
+    info = localtime( &rawtime );
+    strftime(newFile->last_modified, DATE,"%x - %I:%M%p", info);
+
+    newFile->size = file_length;
+
+
+    //DEBUG
+    fprintf(stderr,"NAME : |%s|\n", newFile->name );
+    fprintf(stderr,"EXTENSION : |%s|\n", newFile->extension );
+    fprintf(stderr,"TIME : |%s|\n", newFile->last_modified ); // MES/DIA/ANO HORA:MIN
+    fprintf(stderr,"SIZE : |%i|\n", newFile->size );
+    //ENDDEBUG
+
+    return 0;
+
+}
 
 
 int createUserDir(char* userId){

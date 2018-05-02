@@ -25,20 +25,19 @@ void sync_server(){
 
 void receive_file(char *file) {
 
-	/* receive from socket */
-	n = recvfrom(sockfd, buf, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);
-	if (n < 0)
-		printf("[ERROR] on recvfrom");
+		/* receive from socket */
+		n = recvfrom(sockfd, buf, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);
+		if (n < 0)
+			printf("[ERROR] on recvfrom");
 
-	printf("\n\nReceived packet from %s:%d\n", inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
-	printf("Received a datagram:\n%s", buf);
+		printf("\n\nReceived packet from %s:%d\n", inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
+		printf("Received a datagram:\n%s", buf);
 
-	/* send to socket */
-	n = sendto(sockfd, "Got your message\n", 17, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
-	bzero(buf, sizeof(buf));
-	if (n  < 0)
-		printf("[ERROR] Message not received");
-
+		/* send to socket */
+		n = sendto(sockfd, "Got your message\n", 17, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+		bzero(buf, sizeof(buf));
+		if (n  < 0)
+			printf("[ERROR] Message not received");
 
 }
 
@@ -52,51 +51,46 @@ void send_file(char *file){
 
 int main(int argc, char *argv[])
 {
+	  // Executa a operação de abrir o socket
+		if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+			printf("[ERROR] Socket cannot be opened.");
 
 
-  // Executa a operação de abrir o socket
-	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
-		printf("[ERROR] Socket cannot be opened.");
+		serv_addr.sin_family = AF_INET;
+		serv_addr.sin_port = htons(PORT);
+		serv_addr.sin_addr.s_addr = INADDR_ANY;
+		bzero(&(serv_addr.sin_zero), 8);
 
 
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(PORT);
-	serv_addr.sin_addr.s_addr = INADDR_ANY;
-	bzero(&(serv_addr.sin_zero), 8);
+		if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) < 0)
+			printf("[ERROR] Could not Bind");
 
 
-	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) < 0)
-		printf("[ERROR] Could not Bind");
+		clilen = sizeof(struct sockaddr_in);
 
 
-	clilen = sizeof(struct sockaddr_in);
+		while (1) {
+			/* receive from socket */
+			n = recvfrom(sockfd, buf, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);
+
+			int server_code = command_code; //command_code is the action code wanted by the client.
+
+			//IF server_code == 1 -> Client want to upload some file.
 
 
-	while (1) {
-		/* receive from socket */
-		n = recvfrom(sockfd, buf, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);
+			if (n < 0)
+				printf("[ERROR] on recvfrom");
 
-		// if (command_code == 1){
-		// 	receive_file();
-		// }
-		//
-		// else if (command_code == 2){
-		// 	send_file();
-		// }
-		
-		if (n < 0)
-			printf("[ERROR] on recvfrom");
+			printf("\n\nReceived packet from %s:%d\n", inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
+			printf("Received a datagram:\n%s", buf);
 
-		printf("\n\nReceived packet from %s:%d\n", inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
-		printf("Received a datagram:\n%s", buf);
+			/* send to socket */
+			n = sendto(sockfd, "Got your message\n", 17, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+			bzero(buf, sizeof(buf));
+			if (n  < 0)
+				printf("[ERROR] Message not received");
+		}
 
-		/* send to socket */
-		n = sendto(sockfd, "Got your message\n", 17, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
-		bzero(buf, sizeof(buf));
-		if (n  < 0)
-			printf("[ERROR] Message not received");
-	}
-
-	close(sockfd);
-	return 0;
+		close(sockfd);
+		return 0;
 }
