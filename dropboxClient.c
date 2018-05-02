@@ -19,6 +19,8 @@ char directory[50]; //
 int notifyStart;
 int watchList;
 
+
+
 void startNotify () {
 
 	notifyStart = inotify_init();
@@ -26,6 +28,8 @@ void startNotify () {
 	watchList = inotify_add_watch (notifyStart, directory, IN_CREATE | IN_DELETE | IN_MODIFY | IN_CLOSE_WRITE | IN_MOVED_FROM); // por enquanto ve apenas se foi criado arquivo, deletado ou modificado
 
 }
+
+
 
 int login_server(char *host, int port) {
 
@@ -196,12 +200,19 @@ void close_session(){
 
 
 int main(int argc, char *argv[]){
-		if (argc < 2) {
+		if (argc < 4) {
 			fprintf(stderr, "To connect use: ./dropbox {userid} {user_adress} {PORT}\n");
 			exit(0);
 		}
 
-		int login = login_server(argv[1], PORT);
+		iniciateList();
+		int index = search_and_setClient(argv[1]);
+
+		if (index < 0) {
+				create_and_setClient(argv[1]);
+		}
+
+		int login = login_server(argv[2], PORT);
 
 	  if(login){
 

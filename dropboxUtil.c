@@ -8,14 +8,13 @@
 #include "dropboxUtil.h"
 
 
-int total_client;
 CLIENT* client_list;
 CLIENT* actual;
 
 void showMenu() {
 
     system("clear");
-    printf(">>>>> Welcome to the Dropbox! <<<<<\n\n");
+    printf(">>>>> Welcome to the Dropbox! [USER: %s] <<<<<\n\n", actual->userid);
     printf("[1] Upload a file (cmd: upload <path/filename.ext)\n");
     printf("[2] Download a file (cmd: download <filename.ext>)\n");
     printf("[3] Delete a file (cmd: delete <filename.ext>)\n");
@@ -37,27 +36,35 @@ void iniciateList(){
 
 
 
-void createClient(char* user_id) {
+void create_and_setClient(char* user_id) {
 
     CLIENT* newClient = malloc(sizeof(CLIENT));
+
     newClient->devices[0]= 0;
     newClient->devices[1]= 0;
     newClient->devices[2]= 0;
-    newClient->userid[sizeof(newClient->userid)] = *user_id;
+    char id [sizeof(user_id)];
+    memcpy( id, &user_id[0], sizeof(user_id));
+    strncpy(newClient->userid , id , sizeof(id));
+    newClient->userid[UNIQUE_ID] = '\0';
     newClient->logged_in = 0;
 
     client_list[total_client] = *newClient;
+    actual = &client_list[total_client];
     total_client++;
+
 
 }
 
 
 
-int searchClient(char* userid) {
+int search_and_setClient(char* userid) {
 
     int i;
     for (i = 0; i < total_client ; i++){
       if (strcmp(client_list[i].userid, userid) == 0) {
+        actual = &client_list[i];
+        fprintf(stderr,"CLIENT INDEX: %i",i);
         return i;
       }
     }

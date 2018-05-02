@@ -30,6 +30,9 @@
 #define MAXCLIENTS 150
 
 
+int total_client;
+
+
 //USER INPUT COMMAND CODE
 int command_code; //Store the command code of the action wanted by user.
 
@@ -85,9 +88,16 @@ void showMenu();
 
 
 /**
-	Create a client if userID is new.
+ * Iniciate the list of clients.
+ */
+void iniciateList();
+
+
+
+/**
+	Create a client and set his session configs. Creates only if userID is new.
 */
-void createClient();
+void create_and_setClient();
 
 
 
@@ -98,10 +108,10 @@ void createClient();
 
 
 	@param userId
-	@return == 0 The client exist
+	@return >= 0 The client exist and is set (Returning the index of him in the list)
 	@return < 0 The client dont exist.
 */
-int searchClient(char* userid);
+int search_and_setClient(char* userid);
 
 
 
