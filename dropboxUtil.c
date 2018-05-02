@@ -62,7 +62,7 @@ int search_and_setClient(char* userid) {
 
     int i;
     for (i = 0; i < total_client ; i++){
-      if (strcmp(client_list[i].userid, userid) == 0) {
+      if (strncmp(client_list[i].userid, userid, sizeof(userid)) == 0) {
         actual = &client_list[i];
         fprintf(stderr,"CLIENT INDEX: %i",i);
         return i;
