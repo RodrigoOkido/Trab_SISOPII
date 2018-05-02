@@ -109,6 +109,30 @@ void send_file(char *file){
 			return;
 		}
 
+
+		parseFile(file); //Parse the filename and file extension (check dropboxUtil.c for this function);
+
+
+		//PREPARING NEW FILE
+		FILE_INFO* newFile = malloc(sizeof(FILE_INFO));
+		strncpy(newFile->name, filename, MAXNAME-1);
+		newFile->name[MAXNAME-1] = 0;
+		strncpy(newFile->extension, extension, EXT-1);
+		newFile->extension[EXT-1] = 0;
+
+		time_t rawtime;
+		struct tm *info;
+
+		time( &rawtime );
+		info = localtime( &rawtime );
+		strftime(newFile->last_modified, DATE,"%x - %I:%M%p", info);
+
+		//DEBUG
+		fprintf(stderr,"NAME: |%s|\n", newFile->name );
+		fprintf(stderr,"EXT: |%s|\n", newFile->extension );
+		fprintf(stderr,"TIME: |%s|\n", newFile->last_modified ); // MES/DIA/ANO HORA:MIN
+		//ENDDEBUG
+
 		fseek(sendFile, 0, SEEK_END); //Seek the pointer to the end of the file to check the last byte number.
 		file_length = ftell(sendFile); //Store the file length of the received file.
 	  fseek(sendFile, 0, SEEK_SET); //Turn the pointer to the beginning.
@@ -216,7 +240,7 @@ int main(int argc, char *argv[]){
 
 					if (code == 1){
 						directory = strndup(user_cmd+7, strlen(user_cmd));
-						fprintf(stderr, "%s\n", directory);
+						fprintf(stderr, "FILE WANTED TO SEND : %s\n", directory);
 					}
 
 					else if (code == 2){
@@ -239,6 +263,8 @@ int main(int argc, char *argv[]){
 						case 7: close_session(); start = 0; break;
 						default: printf("\nINVALID COMMAND \n"); break;
 					}
+
+					code = 0;
 
 					printf("\n\nPress enter...\n");
 					char enter = 0;

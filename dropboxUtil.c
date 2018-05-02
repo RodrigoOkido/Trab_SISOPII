@@ -11,6 +11,7 @@
 int total_client;
 CLIENT* client_list;
 
+
 void showMenu() {
 
     system("clear");
@@ -24,6 +25,7 @@ void showMenu() {
     printf("[7] Exit (cmd: exit)\n\n");
 
 }
+
 
 
 void iniciateList(){
@@ -61,14 +63,11 @@ int searchClient(char* userid) {
     }
 
     return 0;
-
 }
 
 
 
 int parseCommand (char cmd[]){
-
-    int command_code;
 
   	if(strncmp(cmd,"upload",6) == 0){
   		//printf("UPLOAD CODE\n");
@@ -104,8 +103,45 @@ int parseCommand (char cmd[]){
   	}
 
   	return command_code;
+}
+
+
+
+int parseFile(char* file){
+
+    int lastSlashIndex; //Variable to store the index of the last slash ('/')
+    int pointIndex; //Variable to store the point to indicate the extension ('.')
+
+    int i;
+    for (i = 0 ; i < strlen(file) ; i++){
+        if (file[i] == '/'){
+          lastSlashIndex = i;
+        }
+        if (file[i] == '.'){
+          pointIndex = i;
+        }
+    }
+
+    int file_name_size = pointIndex-lastSlashIndex;
+    int file_ext = sizeof(file) - pointIndex;
+
+    char name [file_name_size];
+    if (lastSlashIndex == 0){
+      memcpy( name, &file[lastSlashIndex], file_name_size); //Pass the filename to name
+    } else {
+      memcpy( name, &file[lastSlashIndex+1], file_name_size);
+    }
+    name[file_name_size] = '\0'; //Garantee the end of the word
+
+    char ext [file_ext];
+    memcpy( ext, &file[pointIndex+1], file_ext); //Pass the extension name to ext
+    ext[file_ext] = '\0'; //Garantee the end of the word
+
+    strncpy(filename , name , sizeof(name));
+    strncpy(extension , ext , sizeof(ext));
 
 }
+
 
 
 int createUserDir(char* userId){

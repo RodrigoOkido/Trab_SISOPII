@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <time.h>
 
 #define PORT 		4000
 #define BUFFER_TAM 	256
@@ -18,10 +19,17 @@
 
 #define UNIQUE_ID 10
 #define EXT 4
-#define DATE 20
+#define DATE 18
 #define MAXCLIENTS 150
 
+
+int command_code; //Store the command code of the action wanted by user.
+char filename[MAXNAME]; //Char array to take the name of the file created (activated in PARSEFILE() function below).
+char extension[EXT]; //Pointer to get the extension of the file created (activated in PARSEFILE() function below).
+
 //const char homeDir[] = "./temp/sync_dir_"; //===> ALTERAR PARA /home/sync_dir_ <=======//
+
+
 
 /**
   name[MAXNAME] refere-se ao nome do arquivo.
@@ -36,6 +44,7 @@ typedef struct file_info	{
 	char last_modified[DATE];
 	int	size;
 } FILE_INFO;
+
 
 
 /**
@@ -55,10 +64,55 @@ typedef struct client	{
 
 
 
+/**
+	Show the menu for the client when connected.
+*/
 void showMenu();
+
+
+
+/**
+	Create a client if userID is new.
+*/
 void createClient();
-int searchClient();
+
+
+
+/**
+	Search if the client exists on the list clients. If 0,
+	the user will be able to login with all your changes made in
+	the session before (if changes was made).
+
+
+	@param userId
+	@return == 0 The client exist
+	@return < 0 The client dont exist.
+*/
+int searchClient(char* userid);
+
+
+
+/**
+	Check the input of the user on the client side. This is called to check what
+	action the user wants to do.
+
+	@param cmd[] The input command received
+	@return Return the code of the command wanted
+*/
 int parseCommand(char cmd[]);
+
+
+
+/**
+	Parse the file which user wants to send to the server.
+
+	@param file The file which will be send to server
+	@return return 0 - OK
+	@return return < 0 - SOMETHING WRONG
+*/
+int parseFile(char* File);
+
+
 
 /**
   Cria um diretório na máquina referente ao usuário
