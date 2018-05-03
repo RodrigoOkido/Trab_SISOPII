@@ -216,8 +216,11 @@ int main(int argc, char *argv[]){
 
 	  if(login){
 
-				int start = 1;
-				//sync_client(); //Sync client files with the server
+		int start = 1;
+		int dir = get_sync_dir(argv[1]);
+		if(dir == 0) // == 0 Diretório já existe, pode ser sincronizado
+		 //sync_client(); //Sync client files with the server
+		if(dir == -2) exit(dir);
 
 
 	      while(start){

@@ -42,11 +42,6 @@ char filename[MAXNAME]; //Char array to take the name of the file created (activ
 char extension[EXT]; //Pointer to get the extension of the file created (activated in PARSEFILE() function below).
 int file_length; //Stores the length of the new file.
 
-
-//const char homeDir[] = "./temp/sync_dir_"; //===> ALTERAR PARA /home/sync_dir_ <=======//
-
-
-
 /**
   name[MAXNAME] refere-se ao nome do arquivo.
   extension[MAXNAME] refere-se ao tipo de extensão do arquivo.
@@ -154,4 +149,4 @@ int createNewFile();
   @return == 0 - Pasta já existe
   @return <  0 - ERROR
 */
-int createUserDir(char* userId);
+int get_sync_dir(char* userId);

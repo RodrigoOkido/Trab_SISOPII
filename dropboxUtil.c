@@ -7,6 +7,7 @@
 
 #include "dropboxUtil.h"
 
+const char homeDir[] = "/tmp/sync_dir_";
 
 CLIENT* client_list;
 CLIENT* actual;
@@ -182,19 +183,19 @@ int createNewFile(){
 }
 
 
-int createUserDir(char* userId){
+int get_sync_dir(char* userId){
     //aux = MAXNAME + "./home/sync_dir_" => 272
     char aux[272];
 
-    //strcpy(aux,homeDir);
-    //strcat(aux, userId);
+    strcpy(aux,homeDir);
+    strcat(aux, userId);
 
-    //cria o diretório com permissão de leitura/escrita/execução
-    //int i = mkdir(aux, 0700);
+    //cria o diretório com permissão de leitura/escrita/execução                                                               
+    int i = mkdir(aux, 0777);
 
-    //if(i == -1) return 0; //Pasta já existe
-    //if(i != 0) { printf("[ERROR] createUserDir() -> Ao criar a pasta %s (CODE -2)\n", aux); return -2; // ERRO no mkdir
+    if(i == -1) return 0; //Pasta já existe
+    if(i != 0) { printf("[ERROR] get_sync_dir() -> Ao criar a pasta %s (CODE -2)\n", aux); return -2; } // ERRO no mkdir
 
-    //return 1; //Pasta foi criada tudo OK
+    return 1; //Pasta foi criada tudo OK
 
 }
