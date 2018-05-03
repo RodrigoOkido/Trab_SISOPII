@@ -9,13 +9,11 @@
 
 const char homeDir[] = "/tmp/sync_dir_";
 
-CLIENT* client_list;
-CLIENT* actual;
 
 void showMenu() {
 
     system("clear");
-    printf(">>>>> Welcome to the Dropbox! [USER: %s] <<<<<\n\n", actual->userid);
+    printf(">>>>> Welcome to the Dropbox! [USER: %s] <<<<<\n\n", actualClient->userid);
     printf("[1] Upload a file (cmd: upload <path/filename.ext)\n");
     printf("[2] Download a file (cmd: download <filename.ext>)\n");
     printf("[3] Delete a file (cmd: delete <filename.ext>)\n");
@@ -29,18 +27,17 @@ void showMenu() {
 
 
 void iniciateList(){
-
     total_client = 0;
     client_list = malloc(MAXCLIENTS * sizeof(CLIENT));
-
 }
 
 
 
 void create_and_setClient(char* user_id) {
 
-    CLIENT* newClient = malloc(sizeof(CLIENT));
+    CLIENT* newClient = malloc(sizeof(CLIENT)); //Create new client
 
+    //Inicialization of this new Client.
     newClient->devices[0]= 0;
     newClient->devices[1]= 0;
     newClient->devices[2]= 0;
@@ -48,13 +45,16 @@ void create_and_setClient(char* user_id) {
     memcpy( id, &user_id[0], sizeof(user_id));
     strncpy(newClient->userid , id , sizeof(id));
     newClient->userid[UNIQUE_ID] = '\0';
+    newClient->files_qty = 0;
     newClient->logged_in = 0;
 
+    //Put the new Client in the list of clients
     client_list[total_client] = *newClient;
-    actual = &client_list[total_client];
-    total_client++;
 
-
+    //Set actual Client for this one. The actual indicates the current
+    //user logged in Dropbox.
+    actualClient = &client_list[total_client];
+    total_client++; //Increment the total of the Clients after created.
 }
 
 
@@ -63,13 +63,14 @@ int search_and_setClient(char* userid) {
 
     int i;
     for (i = 0; i < total_client ; i++){
-      if (strncmp(client_list[i].userid, userid, sizeof(userid)) == 0) {
-        actual = &client_list[i];
-        fprintf(stderr,"CLIENT INDEX: %i",i);
-        return i;
-      }
+        if (strncmp(client_list[i].userid, userid, sizeof(userid)) == 0) {
+            actualClient = &client_list[i];
+            if(DEBUG) {
+                fprintf(stderr,"CLIENT INDEX: %i",i);
+            }
+            return i;
+        }
     }
-
     return -1;
 }
 
@@ -121,6 +122,8 @@ int parseFile(char* file){
     int pointIndex; //Variable to store the point to indicate the extension ('.')
 
     int i;
+
+    //Locate the index of the last '/' and '.'
     for (i = 0 ; i < strlen(file) ; i++){
         if (file[i] == '/'){
           lastSlashIndex = i;
@@ -130,37 +133,44 @@ int parseFile(char* file){
         }
     }
 
-    int file_name_size = pointIndex-lastSlashIndex;
-    int file_ext = strlen(file) - pointIndex;
+    int file_name_size = pointIndex-lastSlashIndex; //Give the size of the filename
+    int file_ext = strlen(file) - pointIndex; //Give the size of extension
 
     char name [file_name_size];
-    if (lastSlashIndex == 0){
+    if (lastSlashIndex == 0){ //If the file is located on current directory
       memcpy( name, &file[lastSlashIndex], file_name_size); //Pass the filename to name
-    } else {
+    } else { //else increment lastSlashIndex to start taking the file without '/'
       memcpy( name, &file[lastSlashIndex+1], file_name_size);
     }
-    name[file_name_size] = '\0'; //Garantee the end of the word
+    name[file_name_size] = '\0'; //Guarantee the end of the word
 
     char ext [file_ext];
-    memcpy( ext, &file[pointIndex+1], file_ext); //Pass the extension name to ext
-    ext[file_ext] = '\0'; //Garantee the end of the word
+    memcpy( ext, &file[pointIndex], file_ext); //Pass the extension name to ext
+    ext[file_ext] = '\0'; //Guarantee the end of the word
 
+
+    //Copies the name and extension to 'filename' and 'extension'
     strncpy(filename , name , sizeof(name));
+    filename[MAXNAME-1] = '\0';
     strncpy(extension , ext , sizeof(ext));
+    extension[EXT-1] = '\0';
 
+    memset(name, 0, sizeof name);
+    memset(ext, 0, sizeof ext);
 }
 
 
 
 int createNewFile(){
 
-    //PREPARING NEW FILE
+    //Creating and preparing the new file
     FILE_INFO* newFile = malloc(sizeof(FILE_INFO));
     strncpy(newFile->name, filename, MAXNAME-1);
-    newFile->name[MAXNAME-1] = 0;
+    newFile->name[MAXNAME-1] = '\0';
     strncpy(newFile->extension, extension, EXT-1);
-    newFile->extension[EXT-1] = 0;
+    newFile->extension[EXT-1] = '\0';
 
+    //Saving the actual time for the file recently created
     time_t rawtime;
     struct tm *info;
 
@@ -171,15 +181,33 @@ int createNewFile(){
     newFile->size = file_length;
 
 
-    //DEBUG
-    fprintf(stderr,"NAME : |%s|\n", newFile->name );
-    fprintf(stderr,"EXTENSION : |%s|\n", newFile->extension );
-    fprintf(stderr,"TIME : |%s|\n", newFile->last_modified ); // MES/DIA/ANO HORA:MIN
-    fprintf(stderr,"SIZE : |%i|\n", newFile->size );
-    //ENDDEBUG
+    //Checks if actualClient exists.
+    if (actualClient != NULL){
+        actualClient->file_info[actualClient->files_qty] = *newFile;
+        actualClient->files_qty++;
 
-    return 0;
+        if(DEBUG){
+            fprintf(stderr,"NAME : |%s|\n", actualClient->file_info->name );
+            fprintf(stderr,"EXTENSION : |%s|\n", actualClient->file_info->extension );
+            fprintf(stderr,"TIME : |%s|\n", actualClient->file_info->last_modified ); // MES/DIA/ANO HORA:MIN
+            fprintf(stderr,"SIZE : |%i| bytes\n", actualClient->file_info->size );
+            fprintf(stderr,"QTD FILES : |%i|\n", actualClient->files_qty );
+        }
 
+        //Clears the array for the next file
+        memset(filename, 0, sizeof filename);
+        //Clears the array for the next file extension
+        memset(extension, 0, sizeof extension);
+
+        return 0;
+    } else {
+        //Clears the array for the next file
+        memset(filename, 0, sizeof filename);
+        //Clears the array for the next file extension
+        memset(extension, 0, sizeof extension);
+
+        return -1;
+    }
 }
 
 

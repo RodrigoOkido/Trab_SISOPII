@@ -29,18 +29,7 @@
 #define DATE 18
 #define MAXCLIENTS 150
 
-
-int total_client;
-
-
-//USER INPUT COMMAND CODE
-int command_code; //Store the command code of the action wanted by user.
-
-
-//FILE VARIABLES CONTROLLER
-char filename[MAXNAME]; //Char array to take the name of the file created (activated in PARSEFILE() function below).
-char extension[EXT]; //Pointer to get the extension of the file created (activated in PARSEFILE() function below).
-int file_length; //Stores the length of the new file.
+#define DEBUG 1 //DEBUGGING PURPOSE
 
 /**
   name[MAXNAME] refere-se ao nome do arquivo.
@@ -70,10 +59,28 @@ typedef struct client	{
   int devices[2];
   char userid[UNIQUE_ID];
   FILE_INFO file_info[MAXFILES];
+	int files_qty;
   int logged_in;
 } CLIENT;
 
 
+
+int total_client;
+
+//USER INPUT COMMAND CODE
+int command_code; //Store the command code of the action wanted by user.
+
+//FILE VARIABLES CONTROLLER
+char filename[MAXNAME]; //Char array to take the name of the file created (activated in PARSEFILE() function below).
+char extension[EXT]; //Pointer to get the extension of the file created (activated in PARSEFILE() function below).
+int file_length; //Stores the length of the new file.
+
+
+CLIENT* client_list;
+CLIENT* actualClient;
+
+
+//const char homeDir[] = "./temp/sync_dir_"; //===> ALTERAR PARA /home/sync_dir_ <=======//
 
 /**
 	Show the menu for the client when connected.
@@ -90,7 +97,7 @@ void iniciateList();
 
 
 /**
-	Create a client and set his session configs. Creates only if userID is new.
+	Create a client and set his session configs. Called only if userID is new.
 */
 void create_and_setClient();
 
@@ -100,7 +107,6 @@ void create_and_setClient();
 	Search if the client exists on the list clients. If 0,
 	the user will be able to login with all your changes made in
 	the session before (if changes was made).
-
 
 	@param userId
 	@return >= 0 The client exist and is set (Returning the index of him in the list)
@@ -133,7 +139,8 @@ int parseFile(char* File);
 
 
 /**
- * Create a new file.
+ * Create a new file. This function is called when the user wants to upload
+ * some file.
  *
  * @return return 0 - new file created successfully
  * @return return < 0 - something wrong
