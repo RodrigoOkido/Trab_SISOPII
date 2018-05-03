@@ -116,8 +116,10 @@ void send_file(char *file){
 		fseek(sendFile, 0, SEEK_SET); //Turn the pointer to the beginning.
 
 
-		parseFile(file); //Parse the filename and file extension (check dropboxUtil.c for this function);
-		createNewFile(); //Create new file with the parsed file content (check dropboxUtil.c for this function);
+		//Parse the filename and file extension (check dropboxUtil.c for this function);
+		parseFile(file);
+		//Create new file with the parsed file content (check dropboxUtil.c for this function);
+		createNewFile();
 
 
 		packet = 1; //Packet number.
@@ -127,30 +129,39 @@ void send_file(char *file){
 				n = sendto(sockfd, send_buffer, strlen(send_buffer), MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 
 				if (n < 0)
-					printf("ERROR sendto\n");
+						printf("ERROR sendto\n");
+
+				if(DEBUG){
+						printf("\n");
+						printf("Packet Number: %i\n",packet);
+						printf("Packet Size Sent: %i\n",read_buffer);
+						printf("\n");
+				}
 
 				bzero(send_buffer, sizeof(send_buffer));
 		} else {
 
-			while(!feof(sendFile)) {
+				while(!feof(sendFile)) {
+						read_buffer = fread(send_buffer, 1, sizeof(send_buffer)-1, sendFile);
 
-				read_buffer = fread(send_buffer, 1, sizeof(send_buffer)-1, sendFile);
+						//Send data through our socket
+						do {
+								n = sendto(sockfd, send_buffer, read_buffer, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+						} while(n < 0);
 
-				//Send data through our socket
-				do {
-						n = sendto(sockfd, send_buffer, read_buffer, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-				} while(n < 0);
 
-				printf("\n");
-				printf("Packet Number: %i\n",packet);
-				printf("Packet Size Sent: %i\n",read_buffer);
-				printf("\n");
+						if(DEBUG){
+								printf("\n");
+								printf("Packet Number: %i\n",packet);
+								printf("Packet Size Sent: %i\n",read_buffer);
+								printf("\n");
+						}
 
-				packet++;
+						packet++;
 
-				//Zero out our send buffer
-				bzero(send_buffer, sizeof(send_buffer));
-			}
+						//Zero out our send buffer
+						bzero(send_buffer, sizeof(send_buffer));
+				}
 
 		}
 
@@ -201,7 +212,7 @@ void close_session(){
 
 int main(int argc, char *argv[]){
 		if (argc < 4) {
-			fprintf(stderr, "To connect use: ./dropbox {userid} {user_adress} {PORT}\n");
+			fprintf(stderr, "[ERROR] Use the following syntax : ./dropboxClient {userid} {user_adress} {PORT}\n");
 			exit(0);
 		}
 
@@ -221,50 +232,49 @@ int main(int argc, char *argv[]){
 
 
 	      while(start){
-	        showMenu();
+						showMenu();
 
+						printf("cmd > ");
+						fgets(user_cmd, sizeof(user_cmd), stdin);
+						user_cmd[strlen(user_cmd) -1] = '\0';
 
-	        printf("cmd > ");
-	        fgets(user_cmd, sizeof(user_cmd), stdin);
-					user_cmd[strlen(user_cmd) -1] = '\0';
+						int code = parseCommand(user_cmd);
+						char *directory; //Used only if the action is upload/download/delete a file.
+														 //Takes the directory of the file.
 
-					int code = parseCommand(user_cmd);
-					char *directory; //Used only if the action is upload/download/delete a file.
-													 //Takes the directory of the file.
+						if (code == 1){
+							directory = strndup(user_cmd+7, strlen(user_cmd));
+							fprintf(stderr, "Uploading File : %s\n", directory);
+						}
 
-					if (code == 1){
-						directory = strndup(user_cmd+7, strlen(user_cmd));
-						fprintf(stderr, "FILE WANTED TO SEND : %s\n", directory);
-					}
+						else if (code == 2){
+							directory = strndup(user_cmd+9, strlen(user_cmd));
+							fprintf(stderr, "%s\n", directory);
+						}
 
-					else if (code == 2){
-						directory = strndup(user_cmd+9, strlen(user_cmd));
-						fprintf(stderr, "%s\n", directory);
-					}
+						else if (code == 3){
+							directory = strndup(user_cmd+7, strlen(user_cmd));
+							fprintf(stderr, "%s\n", directory);
+						}
 
-					else if (code == 3){
-						directory = strndup(user_cmd+7, strlen(user_cmd));
-						fprintf(stderr, "%s\n", directory);
-					}
+						switch(code){
+							case 1: send_file(directory); break;
+							case 2: get_file(directory); break;
+							case 3: break;
+							case 4: break;
+							case 5: break;
+							case 6: break;
+							case 7: close_session(); start = 0; break;
+							default: printf("\nINVALID COMMAND \n"); break;
+						}
 
-					switch(code){
-						case 1: send_file(directory); break;
-						case 2: get_file(directory); break;
-						case 3: break;
-						case 4: break;
-						case 5: break;
-						case 6: break;
-						case 7: close_session(); start = 0; break;
-						default: printf("\nINVALID COMMAND \n"); break;
-					}
+						code = 0;
 
-					code = 0;
-
-					printf("\n\nPress enter...\n");
-					char enter = 0;
-					while (enter != '\r' && enter != '\n') {
-						enter = getchar();
-					}
+						printf("\n\nPress enter...\n");
+						char enter = 0;
+						while (enter != '\r' && enter != '\n') {
+							enter = getchar();
+						}
 
 	      }
 
