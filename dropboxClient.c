@@ -19,7 +19,7 @@ char directory[50]; //
 int notifyStart;
 int watchList;
 
-
+CLIENT* cli;
 
 void startNotify () {
 
@@ -115,18 +115,28 @@ void send_file(char *file){
 		file_length = ftell(sendFile); //Store the file length of the received file.
 		fseek(sendFile, 0, SEEK_SET); //Turn the pointer to the beginning.
 
-
-		//Parse the filename and file extension (check dropboxUtil.c for this function);
-		parseFile(file);
-		//Create new file with the parsed file content (check dropboxUtil.c for this function);
-		createNewFile();
+		char *filesize = "475";
 
 
+		//SEND MESSAGE TO CHECK THE FILE LENGTH
+		n = sendto(sockfd, filesize, sizeof(filesize), MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
+		fprintf(stderr, "%s\n", send_buffer);
+		bzero(send_buffer, BUFFER_TAM);
+
+
+		//SEND MESSAGE TO CHECK THE FILENAME AND EXTENSION.
+		n = sendto(sockfd, file, strlen(file), MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
+		fprintf(stderr, "%s\n", send_buffer);
+		bzero(send_buffer, BUFFER_TAM);
+
+		fprintf(stderr, "FILE LENGTH %i\n", file_length);
 		packet = 1; //Packet number.
 
 		if (file_length < BUFFER_TAM) {
 				read_buffer = fread(send_buffer, 1, file_length, sendFile);
-				n = sendto(sockfd, send_buffer, strlen(send_buffer), MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+				n = sendto(sockfd, send_buffer, read_buffer, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 
 				if (n < 0)
 						printf("ERROR sendto\n");
@@ -142,6 +152,7 @@ void send_file(char *file){
 		} else {
 
 				while(!feof(sendFile)) {
+
 						read_buffer = fread(send_buffer, 1, sizeof(send_buffer)-1, sendFile);
 
 						//Send data through our socket
@@ -216,32 +227,35 @@ int main(int argc, char *argv[]){
 			exit(0);
 		}
 
-		iniciateList();
-		int index = search_and_setClient(argv[1]);
-
-		if (index < 0) {
-				create_and_setClient(argv[1]);
-		}
+		cli = find_or_createClient(argv[1]);
 
 		int login = login_server(argv[2], PORT);
 
 	  if(login){
 
-		int start = 1;
-		int dir = get_sync_dir(argv[1]);
-		if(dir == 0) // == 0 Diretório já existe, pode ser sincronizado
-		 //sync_client(); //Sync client files with the server
-		if(dir == -2) exit(dir);
+				int start = 1;
+				int dir = get_sync_dir(argv[1]);
+				if(dir == 0) // == 0 Diretório já existe, pode ser sincronizado
+				 //sync_client(); //Sync client files with the server
+				if(dir == -2) exit(dir);
 
+				//SEND USER ID TO SERVER
+				n = sendto(sockfd, cli->userid, UNIQUE_ID, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+				//RECEIVE THE ANSWER FROM THE SERVER
+				n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
+				fprintf(stderr, "%s\n", send_buffer);
+				bzero(send_buffer, BUFFER_TAM);
 
 	      while(start){
-						showMenu();
+
+						showMenu(cli);
 
 						printf("cmd > ");
 						fgets(user_cmd, sizeof(user_cmd), stdin);
 						user_cmd[strlen(user_cmd) -1] = '\0';
 
 						int code = parseCommand(user_cmd);
+
 						char *directory; //Used only if the action is upload/download/delete a file.
 														 //Takes the directory of the file.
 
@@ -260,6 +274,13 @@ int main(int argc, char *argv[]){
 							fprintf(stderr, "%s\n", directory);
 						}
 
+						// SENDO MESSAGE OF THE USER COMMAND
+						n = sendto(sockfd, user_cmd, strlen(user_cmd) -1, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+						// RECEIVE THE MESSAGE FROM THE SERVER ABOUT THE USER COMMAND
+						n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
+						fprintf(stderr, "%s\n", send_buffer);
+						bzero(send_buffer, BUFFER_TAM);
+
 						switch(code){
 							case 1: send_file(directory); break;
 							case 2: get_file(directory); break;
@@ -271,7 +292,8 @@ int main(int argc, char *argv[]){
 							default: printf("\nINVALID COMMAND \n"); break;
 						}
 
-						code = 0;
+						memset(user_cmd, 0, sizeof user_cmd);
+						command_code = 0;
 
 						printf("\n\nPress enter...\n");
 						char enter = 0;

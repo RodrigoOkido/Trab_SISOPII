@@ -25,11 +25,13 @@
 #define MAXFILES	20
 
 #define UNIQUE_ID 10
-#define EXT 5
+#define EXT 6
 #define DATE 18
 #define MAXCLIENTS 150
 
 #define DEBUG 1 //DEBUGGING PURPOSE
+
+extern int command_code;
 
 /**
   name[MAXNAME] refere-se ao nome do arquivo.
@@ -63,21 +65,12 @@ typedef struct client	{
   int logged_in;
 } CLIENT;
 
+#ifndef _DROPBOXUTIL_H_
+#define _DROPBOXUTIL_H_
+extern int file_length,total_client;
+extern CLIENT* client_list;
 
-
-int total_client;
-
-//USER INPUT COMMAND CODE
-int command_code; //Store the command code of the action wanted by user.
-
-//FILE VARIABLES CONTROLLER
-char filename[MAXNAME]; //Char array to take the name of the file created (activated in PARSEFILE() function below).
-char extension[EXT]; //Pointer to get the extension of the file created (activated in PARSEFILE() function below).
-int file_length; //Stores the length of the new file.
-
-
-CLIENT* client_list;
-CLIENT* actualClient;
+#endif
 
 
 //const char homeDir[] = "./temp/sync_dir_"; //===> ALTERAR PARA /home/sync_dir_ <=======//
@@ -99,7 +92,7 @@ void iniciateList();
 /**
 	Create a client and set his session configs. Called only if userID is new.
 */
-void create_and_setClient();
+CLIENT* create_and_setClient(char* user_id);
 
 
 
@@ -108,11 +101,11 @@ void create_and_setClient();
 	the user will be able to login with all your changes made in
 	the session before (if changes was made).
 
-	@param userId
+	@param userId, actualClient
 	@return >= 0 The client exist and is set (Returning the index of him in the list)
 	@return < 0 The client dont exist.
 */
-int search_and_setClient(char* userid);
+CLIENT* find_or_createClient(char* userid);
 
 
 
@@ -145,7 +138,7 @@ int parseFile(char* File);
  * @return return 0 - new file created successfully
  * @return return < 0 - something wrong
  */
-int createNewFile();
+int createNewFile(CLIENT* actualClient, int filesize);
 
 
 

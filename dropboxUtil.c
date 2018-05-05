@@ -6,11 +6,25 @@
 */
 
 #include "dropboxUtil.h"
+#include "dropboxServer.h"
 
 const char homeDir[] = "/tmp/sync_dir_";
+int total_client;
+
+//USER INPUT COMMAND CODE
+int command_code; //Store the command code of the action wanted by user.
+
+//FILE VARIABLES CONTROLLER
+char filename[MAXNAME]; //Char array to take the name of the file created (activated in PARSEFILE() function below).
+char extension[EXT]; //Pointer to get the extension of the file created (activated in PARSEFILE() function below).
+int file_length; //Stores the length of the new file.
 
 
-void showMenu() {
+CLIENT* client_list;
+int listActivated = 0;
+
+
+void showMenu(CLIENT* actualClient) {
 
     system("clear");
     printf(">>>>> Welcome to the Dropbox! [USER: %s] <<<<<\n\n", actualClient->userid);
@@ -33,7 +47,7 @@ void iniciateList(){
 
 
 
-void create_and_setClient(char* user_id) {
+CLIENT* create_and_setClient(char* user_id) {
 
     CLIENT* newClient = malloc(sizeof(CLIENT)); //Create new client
 
@@ -53,25 +67,36 @@ void create_and_setClient(char* user_id) {
 
     //Set actual Client for this one. The actual indicates the current
     //user logged in Dropbox.
-    actualClient = &client_list[total_client];
+    return &client_list[total_client];
     total_client++; //Increment the total of the Clients after created.
 }
 
 
 
-int search_and_setClient(char* userid) {
+CLIENT* find_or_createClient(char* userid) {
 
     int i;
+
+    if(listActivated == 0){
+      iniciateList();
+      listActivated = 1;
+    }
+
     for (i = 0; i < total_client ; i++){
         if (strncmp(client_list[i].userid, userid, sizeof(userid)) == 0) {
-            actualClient = &client_list[i];
             if(DEBUG) {
                 fprintf(stderr,"CLIENT INDEX: %i",i);
             }
-            return i;
+            return &client_list[i];
         }
     }
-    return -1;
+
+    if (MAXCLIENTS == total_client){
+      fprintf(stderr, "Unable to create more clients\n");
+      return NULL;
+    } else {
+        return create_and_setClient(userid);
+    }
 }
 
 
@@ -161,14 +186,14 @@ int parseFile(char* file){
 
 
 
-int createNewFile(){
+int createNewFile(CLIENT* actualClient, int filesize){
 
     //Creating and preparing the new file
     FILE_INFO* newFile = malloc(sizeof(FILE_INFO));
     strncpy(newFile->name, filename, MAXNAME-1);
     newFile->name[MAXNAME-1] = '\0';
-    strncpy(newFile->extension, extension, EXT-1);
-    newFile->extension[EXT-1] = '\0';
+    strncpy(newFile->extension, extension, EXT);
+    newFile->extension[EXT] = '\0';
 
     //Saving the actual time for the file recently created
     time_t rawtime;
@@ -178,7 +203,7 @@ int createNewFile(){
     info = localtime( &rawtime );
     strftime(newFile->last_modified, DATE,"%x - %I:%M%p", info);
 
-    newFile->size = file_length;
+    newFile->size = filesize;
 
 
     //Checks if actualClient exists.
@@ -218,7 +243,7 @@ int get_sync_dir(char* userId){
     strcpy(aux,homeDir);
     strcat(aux, userId);
 
-    //cria o diretório com permissão de leitura/escrita/execução                                                               
+    //cria o diretório com permissão de leitura/escrita/execução
     int i = mkdir(aux, 0777);
 
     if(i == -1) return 0; //Pasta já existe
