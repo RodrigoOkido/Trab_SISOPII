@@ -30,3 +30,6 @@ void receive_file(char *file);
   @param file – filename.ext
 */
 void send_file(char *file);
+
+int receiveCommandFromClient();
+void establishConnectionWithClient();

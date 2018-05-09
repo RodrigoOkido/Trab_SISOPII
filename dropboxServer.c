@@ -79,6 +79,24 @@ void send_file(char *file){
   //TODO
 }
 
+int receiveCommandFromClient(){
+	/* MESSAGES EXCHANGES TO CHECK THE COMMAND RECEIVED BY USER*/
+	n = recvfrom(sockfd, buf, sizeof(buf), MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);
+	int server_code = parseCommand(buf); //command_code is the action code wanted by the client.
+	fprintf(stderr, "[SERVER] CODE %i\n",server_code);
+	bzero(buf, sizeof(buf));
+	return server_code;
+}
+
+void establishConnection(){
+	/* MESSAGES EXCHANGES TO ESTABLISH CONNECTION CLIENT/SERVER */
+	n = recvfrom(sockfd, buf, UNIQUE_ID, MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);
+	char* id = buf;
+	fprintf(stderr, "[SERVER] RECEIVED USERID %s\n",id);
+	actualClient = find_or_createClient(id);
+	bzero(buf, sizeof(buf));
+	n = sendto(sockfd, "[SERVER] CONNECTION ESTABLISHED!\n", 32, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+}
 
 int main(int argc, char *argv[])
 {
@@ -98,44 +116,32 @@ int main(int argc, char *argv[])
 
 
 		clilen = sizeof(struct sockaddr_in);
-
-		/* MESSAGES EXCHANGES TO ESTABLISH CONNECTION CLIENT/SERVER */
-		n = recvfrom(sockfd, buf, UNIQUE_ID, MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);
-		char* id = buf;
-		fprintf(stderr, "[SERVER] RECEIVED USERID %s\n",id);
-		actualClient = find_or_createClient(id);
-		bzero(buf, sizeof(buf));
-		n = sendto(sockfd, "[SERVER] CONNECTION ESTABLISHED!\n", 32, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
-
+		
+		establishConnection();
 
 		while (1) {
-				/* MESSAGES EXCHANGES TO CHECK THE COMMAND RECEIVED BY USER*/
-				n = recvfrom(sockfd, buf, sizeof(buf), MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);
-				int server_code = parseCommand(buf); //command_code is the action code wanted by the client.
-				fprintf(stderr, "[SERVER] CODE %i\n",server_code);
-				bzero(buf, sizeof(buf));
+			
+			int server_code = receiveCommandFromClient();
 
+			switch(server_code){
 
-				if(server_code == 1){
-						//IF SERVER CODE IS ONE, THE SERVER PREPARES FOR RECEIVE A FILE
+				case 1:	//IF SERVER CODE IS ONE, THE SERVER PREPARES FOR RECEIVE A FILE
 						n = sendto(sockfd, "[SERVER] COMMAND RECEIVED!\n", 26, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 						n = recvfrom(sockfd, buf, sizeof(buf), MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);
 						filesize = atoi(buf);
 						bzero(buf, sizeof(buf));
-						 n = sendto(sockfd, "[SERVER] CHECKING SIZE....\n", 26, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
-				}
-
-
-				switch(server_code){
-
-						case 1:	n = recvfrom(sockfd, buf, sizeof(buf), MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);
-										parseFile(buf); 		//Parse the filename and file extension (check dropboxUtil.c for this function)
-										createNewFile(actualClient, filesize);
-										receive_file(actualClient->file_info[actualClient->files_qty-1].name); break; //NOT WORKING YET
-						case 2: break;
-						default: n = sendto(sockfd, "[SERVER] COMMAND ERROR!\n", 23, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
-										 break;//fprintf(stderr,"Unrecognized Command...\n"); break;
-				}
+						n = sendto(sockfd, "[SERVER] CHECKING SIZE....\n", 26, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+						n = recvfrom(sockfd, buf, sizeof(buf), MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);
+						parseFile(buf); 		//Parse the filename and file extension (check dropboxUtil.c for this function)
+						createNewFile(actualClient, filesize);
+						receive_file(actualClient->file_info[actualClient->files_qty-1].name); //NOT WORKING YET
+						break; 
+						
+				case 2: break;
+				
+				default: n = sendto(sockfd, "[SERVER] COMMAND ERROR!\n", 23, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+						 break;
+			}
 		}
 
 		close(sockfd);
