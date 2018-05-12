@@ -62,7 +62,8 @@ void sync_client() {
 
 		int length, i = 0;
 		char buffer[EVENT_BUF_LEN];
-
+		char path[200];
+                         
 		while (1) { //fica verificando se alterou o diretorio
 				length = read(notifyStart, buffer, EVENT_BUF_LEN);
 
@@ -76,20 +77,34 @@ void sync_client() {
 						struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
 
 						if ( event->len ) {
-							if ( event->mask & IN_CREATE ) {
-									printf( "New file %s created.\n", event->name );
+							if ( event->mask & IN_CREATE || event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO) {
+
+								strcpy(path, directory);
+								strcat(path, "/");
+								strcat(path, event->name);
+								if( (fopen(path, "r")) == NULL ) {
+
+								   printf("ERROR: File not found.\n");
+								}
+								else { 
+									send_file(path);
+								       // printf( "New file %s created.\n", event->name );
+								}
 							}
 
-						else if ( event->mask & IN_DELETE  || event->mask & IN_MOVED_FROM) {
-							printf( "File %s deleted.\n", event->name );
-						}
-						else if ( event->mask & IN_MODIFY || event->mask & IN_CLOSE_WRITE) {
-							printf( "File %s modified.\n", event->name );
-						}
-						}
+							else if ( event->mask & IN_DELETE  || event->mask & IN_MOVED_FROM) {
+
+								strcpy(path, directory);
+								strcat(path, "/");
+								strcat(path, event->name);
+								delete_file (path);
+								printf( "File %s deleted.\n", event->name );
+							}
+						
+				}
 
 						i += EVENT_SIZE + event->len;
-				}
+		}
 
 		i = 0;
 		sleep(10); //verificar a cada 10 segundos
