@@ -121,11 +121,11 @@ int main(int argc, char *argv[])
 
 
 		clilen = sizeof(struct sockaddr_in);
-		
+
 		establishConnection();
 
 		while (1) {
-			
+
 			int server_code = receiveCommandFromClient();
 
 			switch(server_code){
@@ -133,15 +133,21 @@ int main(int argc, char *argv[])
 				case UPLOAD:	//IF SERVER CODE IS ONE, THE SERVER PREPARES FOR RECEIVE A FILE
 						n = sendto(sockfd, "[SERVER] COMMAND RECEIVED!\n", 26, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 						n = recvfrom(sockfd, buf, sizeof(buf), MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);
-						filesize = atoi(buf);
-						bzero(buf, sizeof(buf));
-						n = sendto(sockfd, "[SERVER] CHECKING SIZE....\n", 26, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
-						n = recvfrom(sockfd, buf, sizeof(buf), MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);
-						parseFile(buf); 		//Parse the filename and file extension (check dropboxUtil.c for this function)
-						createNewFile(actualClient, filesize);
-						receive_file(actualClient->file_info[actualClient->files_qty-1].name); //NOT WORKING YET
-						break; 
-						
+						if (strncmp(buf,"File not found..",16) == 0){
+							fprintf(stderr, "[CLIENT] %s", buf);
+							bzero(buf, sizeof(buf));
+							n = sendto(sockfd, "[SERVER] ABORTING OPERATION...\n", 30, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+						} else {
+							filesize = atoi(buf);
+							bzero(buf, sizeof(buf));
+							n = sendto(sockfd, "[SERVER] CHECKING SIZE....\n", 26, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+							n = recvfrom(sockfd, buf, sizeof(buf), MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);
+							parseFile(buf); 		//Parse the filename and file extension (check dropboxUtil.c for this function)
+							createNewFile(actualClient, filesize);
+							receive_file(actualClient->file_info[actualClient->files_qty-1].name);
+						}
+						break;
+
 				case DOWNLOAD: break;
 				case DELETE: break;
 				case LIST_SERVER: break;

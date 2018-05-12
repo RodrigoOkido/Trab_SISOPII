@@ -107,7 +107,11 @@ void send_file(char *file){
 														 //read_buffer - buffer which will receive the content of the file.
 
 		if (sendFile == NULL){
-			printf("File not found..");
+			n = sendto(sockfd, "File not found..", 16, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+			n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
+			fprintf(stderr, "[CLIENT] File not found..\n");
+			fprintf(stderr, "%s\n", send_buffer);
+			bzero(send_buffer, BUFFER_TAM);
 			return;
 		}
 
@@ -260,15 +264,15 @@ int main(int argc, char *argv[]){
 										//Takes the directory of the file.
 
 						switch(code){
-							case UPLOAD: 
+							case UPLOAD:
 								directory = strndup(user_cmd+7, strlen(user_cmd));
 								fprintf(stderr, "Uploading File : %s\n", directory);
 								break;
-							case DOWNLOAD: 
+							case DOWNLOAD:
 								directory = strndup(user_cmd+9, strlen(user_cmd));
 								fprintf(stderr, "%s\n", directory);
 								break;
-							case DELETE: 
+							case DELETE:
 								directory = strndup(user_cmd+7, strlen(user_cmd));
 								fprintf(stderr, "%s\n", directory);
 								break;
@@ -300,6 +304,7 @@ int main(int argc, char *argv[]){
 
 						memset(user_cmd, 0, sizeof user_cmd);
 						command_code = 0;
+						bzero(send_buffer, BUFFER_TAM);
 
 						printf("\n\nPress enter...\n");
 						char enter = 0;
