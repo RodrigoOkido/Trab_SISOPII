@@ -8,7 +8,6 @@
 #include "dropboxUtil.h"
 #include "dropboxServer.h"
 
-const char homeDir[] = "/tmp/sync_dir_";
 int total_client;
 
 //USER INPUT COMMAND CODE

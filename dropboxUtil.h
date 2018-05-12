@@ -45,6 +45,10 @@
 extern int command_code;
 extern int mkdir();
 
+// Local & Remote Diretory
+static const char homeDir[] = "/tmp/sync_dir_";
+static const char serverDir[] = "/home/sync_dir_";
+
 /**
   name[MAXNAME] refere-se ao nome do arquivo.
   extension[MAXNAME] refere-se ao tipo de extensão do arquivo.

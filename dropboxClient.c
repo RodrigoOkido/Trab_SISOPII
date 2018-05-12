@@ -208,7 +208,35 @@ void get_file(char *file){
 
 void delete_file(char *file){
 
-  return;
+	//path = MAXNAME + "./tmp/sync_dir_" => 273
+	char path[272];
+	strcpy(path, homeDir);
+	strcpy(path, cli->userid);
+	strcat(path, "/");
+	strcat(path, file);
+
+
+	//clean buffer
+	bzero(send_buffer, BUFFER_TAM);
+	
+	n = sendto(sockfd, file, strlen(file), MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
+	fprintf(stderr, "%s\n", send_buffer);
+
+	//ACK
+	if (n < 0)
+		printf("ERROR recvfrom\n");
+	else{
+		//TO DO parse path local (?)
+		if(remove(path) != 0) //remove file cliente side
+			printf("Error: unable to delete the %s file\n", file);
+		else
+			printf("File ( %s ) deleted sucessfully!\n", file);
+	}
+
+
+	bzero(send_buffer, BUFFER_TAM);
+	return;
 
 }
 
@@ -293,7 +321,7 @@ int main(int argc, char *argv[]){
 						switch(code){
 							case UPLOAD: send_file(directory); break;
 							case DOWNLOAD: get_file(directory); break;
-							case DELETE: break;
+							case DELETE: delete_file(directory); break;
 							case LIST_SERVER: break;
 							case LIST_CLIENT: break;
 							case GET_SYNC_DIR: break;

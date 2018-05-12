@@ -24,7 +24,6 @@ char buf[BUFFER_TAM];
 CLIENT* actualClient;
 int filesize;
 
-
 void sync_server(){
 
   //TODO
@@ -82,6 +81,28 @@ void receive_file(char *file) {
 
 void send_file(char *file){
   //TODO
+}
+
+void delete_file_request(char* file, char* userid){
+
+	//path = MAXNAME + "./home/sync_dir_" => 273
+	char path[273];
+	strcpy(path, serverDir);
+	strcpy(path, userid);
+	strcat(path, "/");
+	strcat(path, file);
+
+	// struct FILE_INFO file_info;
+
+	if(remove(path) != 0)
+	{
+	  printf("Error: unable to delete the %s file\n", file);
+	}
+
+	// strcpy(file_info.name, file);
+	// file_info.size = -1;
+
+	// updateFileInfo(userid, file_info);
 }
 
 int receiveCommandFromClient(){
@@ -149,7 +170,15 @@ int main(int argc, char *argv[])
 						break;
 
 				case DOWNLOAD: break;
-				case DELETE: break;
+				case DELETE:
+						bzero(buf, sizeof(buf));
+
+						n = sendto(sockfd, "[SERVER] COMMAND RECEIVED!\n", 26, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+						n = recvfrom(sockfd, buf, sizeof(buf), MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);
+
+						delete_file_request(buf, actualClient->userid); 
+
+						break;
 				case LIST_SERVER: break;
 				case LIST_CLIENT: break;
 				case GET_SYNC_DIR: break;
