@@ -103,15 +103,6 @@ void delete_file_request(char* file){
 	}
 }
 
-int receiveCommandFromClient(){
-	/* MESSAGES EXCHANGES TO CHECK THE COMMAND RECEIVED BY USER*/
-	n = recvfrom(sockfd, buf, sizeof(buf), MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);
-	int server_code = parseCommand(buf); //command_code is the action code wanted by the client.
-	fprintf(stderr, "[SERVER] CODE %i\n",server_code);
-	bzero(buf, sizeof(buf));
-	return server_code;
-}
-
 int main(int argc, char *argv[])
 {
 // Executa a operação de abrir o socket
@@ -160,7 +151,7 @@ void *handle_request(void *req)
 				n = sendto(sockfd, answer, sizeof(struct Request), 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 				fprintf(stderr,"User: %s connected\n", actualClient->userid);
 				break;
-				
+
 		case UPLOAD:	//IF SERVER CODE IS ONE, THE SERVER PREPARES FOR RECEIVE A FILE
 				n = sendto(sockfd, "[SERVER] COMMAND RECEIVED!\n", 26, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 				n = recvfrom(sockfd, buf, sizeof(buf), MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);

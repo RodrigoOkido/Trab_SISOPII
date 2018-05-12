@@ -33,83 +33,81 @@ void startNotify () {
 
 int login_server(char *host, int port) {
 
-		server = gethostbyname(host);
+	server = gethostbyname(host);
 
-	  // Verifica Host
-		if (server == NULL) {
-	        fprintf(stderr,"[ERROR] No host.\n");
-	        exit(0);
-	    }
+	// Verifica Host
+	if (server == NULL) {
+		fprintf(stderr,"[ERROR] No host.\n");
+		exit(0);
+	}
 
-	  // Executa a operação de abrir o socket
-		if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-			printf("[ERROR] Socket cannot be opened.");
-	  }
+	 // Executa a operação de abrir o socket
+	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
+		printf("[ERROR] Socket cannot be opened.");
+	}
 
-		serv_addr.sin_family = AF_INET;
-		serv_addr.sin_port = htons(PORT);
-		serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_port = htons(PORT);
+	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
 
-		bzero(&(serv_addr.sin_zero), 8);
+	bzero(&(serv_addr.sin_zero), 8);
 
-
-	  return 1;
+	return 1;
 }
 
 
 
-void sync_client() {
+void *sync_client(void *arg) {
 
-		int length, i = 0;
-		char buffer[EVENT_BUF_LEN];
-		char path[200];
-                         
-		while (1) { //fica verificando se alterou o diretorio
-				length = read(notifyStart, buffer, EVENT_BUF_LEN);
+	int length, i = 0;
+	char buffer[EVENT_BUF_LEN];
+	char path[200];
+                     
+	while (1) { //fica verificando se alterou o diretorio
+		length = read(notifyStart, buffer, EVENT_BUF_LEN);
+		fprintf(stderr,"[sync_client]\n");
 
+		if (notifyStart < 0) {
+				perror("inotify_init");
+		}
 
-				if (notifyStart < 0) {
-						perror("inotify_init");
+		while ( i < length ) {
+
+		struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
+
+		if ( event->len ) {
+			if ( event->mask & IN_CREATE || event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO) {
+
+				strcpy(path, directory);
+				strcat(path, "/");
+				strcat(path, event->name);
+				if( (fopen(path, "r")) == NULL ) {
+
+				   printf("ERROR: File not found.\n");
 				}
-
-				while ( i < length ) {
-
-						struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
-
-						if ( event->len ) {
-							if ( event->mask & IN_CREATE || event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO) {
-
-								strcpy(path, directory);
-								strcat(path, "/");
-								strcat(path, event->name);
-								if( (fopen(path, "r")) == NULL ) {
-
-								   printf("ERROR: File not found.\n");
-								}
-								else { 
-									send_file(path);
-								       // printf( "New file %s created.\n", event->name );
-								}
-							}
-
-							else if ( event->mask & IN_DELETE  || event->mask & IN_MOVED_FROM) {
-
-								strcpy(path, directory);
-								strcat(path, "/");
-								strcat(path, event->name);
-								delete_file (path);
-								printf( "File %s deleted.\n", event->name );
-							}
-						
+				else { 
+					send_file(path);
+					// printf( "New file %s created.\n", event->name );
 				}
+			}
 
-						i += EVENT_SIZE + event->len;
+			else if ( event->mask & IN_DELETE  || event->mask & IN_MOVED_FROM) {
+
+				strcpy(path, directory);
+				strcat(path, "/");
+				strcat(path, event->name);
+				delete_file (path);
+				printf( "File %s deleted.\n", event->name );
+			}
+			
+		}
+
+		i += EVENT_SIZE + event->len;
 		}
 
 		i = 0;
 		sleep(10); //verificar a cada 10 segundos
 	}
-	return;
 
 }
 
@@ -117,97 +115,97 @@ void sync_client() {
 
 void send_file(char *file){
 
-		FILE *sendFile = fopen(file, "rb");
-		int packet, read_buffer; //packet - Counter of packets needed to send the file.
-														 //read_buffer - buffer which will receive the content of the file.
+	FILE *sendFile = fopen(file, "rb");
+	int packet, read_buffer; //packet - Counter of packets needed to send the file.
+													 //read_buffer - buffer which will receive the content of the file.
 
-		if (sendFile == NULL){
-			n = sendto(sockfd, "File not found..", 16, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-			n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
-			fprintf(stderr, "[CLIENT] File not found..\n");
-			fprintf(stderr, "%s\n", send_buffer);
-			bzero(send_buffer, BUFFER_TAM);
-			return;
-		}
-
-		fseek(sendFile, 0, SEEK_END); //Seek the pointer to the end of the file to check the last byte number.
-		file_length = ftell(sendFile); //Store the file length of the received file.
-		fseek(sendFile, 0, SEEK_SET); //Turn the pointer to the beginning.
-
-		char *filesize = "475";
-
-
-		//SEND MESSAGE TO CHECK THE FILE LENGTH
-		n = sendto(sockfd, filesize, sizeof(filesize), MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	if (sendFile == NULL){
+		n = sendto(sockfd, "File not found..", 16, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 		n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
+		fprintf(stderr, "[CLIENT] File not found..\n");
 		fprintf(stderr, "%s\n", send_buffer);
 		bzero(send_buffer, BUFFER_TAM);
+		return;
+	}
+
+	fseek(sendFile, 0, SEEK_END); //Seek the pointer to the end of the file to check the last byte number.
+	file_length = ftell(sendFile); //Store the file length of the received file.
+	fseek(sendFile, 0, SEEK_SET); //Turn the pointer to the beginning.
+
+	char *filesize = "475";
 
 
-		//SEND MESSAGE TO CHECK THE FILENAME AND EXTENSION.
-		n = sendto(sockfd, file, strlen(file), MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
-		fprintf(stderr, "%s\n", send_buffer);
-		bzero(send_buffer, BUFFER_TAM);
-
-		fprintf(stderr, "FILE LENGTH %i\n", file_length);
-		packet = 1; //Packet number.
-
-		if (file_length < BUFFER_TAM) {
-				read_buffer = fread(send_buffer, 1, file_length, sendFile);
-				n = sendto(sockfd, send_buffer, read_buffer, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-
-				if (n < 0)
-						printf("ERROR sendto\n");
-
-				if(DEBUG){
-						printf("\n");
-						printf("Packet Number: %i\n",packet);
-						printf("Packet Size Sent: %i\n",read_buffer);
-						printf("\n");
-				}
-
-				bzero(send_buffer, sizeof(send_buffer));
-		} else {
-
-				while(!feof(sendFile)) {
-
-						read_buffer = fread(send_buffer, 1, sizeof(send_buffer)-1, sendFile);
-
-						//Send data through our socket
-						do {
-								n = sendto(sockfd, send_buffer, read_buffer, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-						} while(n < 0);
+	//SEND MESSAGE TO CHECK THE FILE LENGTH
+	n = sendto(sockfd, filesize, sizeof(filesize), MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
+	fprintf(stderr, "%s\n", send_buffer);
+	bzero(send_buffer, BUFFER_TAM);
 
 
-						if(DEBUG){
-								printf("\n");
-								printf("Packet Number: %i\n",packet);
-								printf("Packet Size Sent: %i\n",read_buffer);
-								printf("\n");
-						}
+	//SEND MESSAGE TO CHECK THE FILENAME AND EXTENSION.
+	n = sendto(sockfd, file, strlen(file), MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
+	fprintf(stderr, "%s\n", send_buffer);
+	bzero(send_buffer, BUFFER_TAM);
 
-						packet++;
+	fprintf(stderr, "FILE LENGTH %i\n", file_length);
+	packet = 1; //Packet number.
 
-						//Zero out our send buffer
-						bzero(send_buffer, sizeof(send_buffer));
-				}
-
-		}
-
-
-		length = sizeof(struct sockaddr_in);
-		n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
+	if (file_length < BUFFER_TAM) {
+		read_buffer = fread(send_buffer, 1, file_length, sendFile);
+		n = sendto(sockfd, send_buffer, read_buffer, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 
 		if (n < 0)
-			printf("ERROR recvfrom\n");
+				printf("ERROR sendto\n");
 
-		printf("File ( %s ) uploaded sucessfully!\n", file);
-		file_length = 0;
+		if(DEBUG){
+				printf("\n");
+				printf("Packet Number: %i\n",packet);
+				printf("Packet Size Sent: %i\n",read_buffer);
+				printf("\n");
+		}
 
-		fclose(sendFile);
+		bzero(send_buffer, sizeof(send_buffer));
+	} else {
 
-		close(sockfd);
+		while(!feof(sendFile)) {
+
+			read_buffer = fread(send_buffer, 1, sizeof(send_buffer)-1, sendFile);
+
+			//Send data through our socket
+			do {
+					n = sendto(sockfd, send_buffer, read_buffer, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+			} while(n < 0);
+
+
+			if(DEBUG){
+				printf("\n");
+				printf("Packet Number: %i\n",packet);
+				printf("Packet Size Sent: %i\n",read_buffer);
+				printf("\n");
+			}
+
+			packet++;
+
+			//Zero out our send buffer
+			bzero(send_buffer, sizeof(send_buffer));
+		}
+
+	}
+
+
+	length = sizeof(struct sockaddr_in);
+	n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
+
+	if (n < 0)
+		printf("ERROR recvfrom\n");
+
+	printf("File ( %s ) uploaded sucessfully!\n", file);
+	file_length = 0;
+
+	fclose(sendFile);
+
+	close(sockfd);
 
 }
 
@@ -269,21 +267,85 @@ void close_session(){
 
 }
 
+void command_get_func()
+{
+	int start = 1;
+	while(start){
 
+		showMenu(cli);
+		printf("cmd > ");
+		fgets(user_cmd, sizeof(user_cmd), stdin);
+		user_cmd[strlen(user_cmd) -1] = '\0';
 
-int main(int argc, char *argv[]){
-		if (argc < 4) {
-			fprintf(stderr, "[ERROR] Use the following syntax : ./dropboxClient {userid} {user_adress} {PORT}\n");
-			exit(0);
+		int code = parseCommand(user_cmd);
+
+		char *directory; //Used only if the action is upload/download/delete a file.
+						//Takes the directory of the file.
+
+		switch(code){
+			case UPLOAD:
+				directory = strndup(user_cmd+7, strlen(user_cmd));
+				fprintf(stderr, "Uploading File : %s\n", directory);
+				break;
+			case DOWNLOAD:
+				directory = strndup(user_cmd+9, strlen(user_cmd));
+				fprintf(stderr, "%s\n", directory);
+				break;
+			case DELETE:
+				directory = strndup(user_cmd+7, strlen(user_cmd));
+				fprintf(stderr, "%s\n", directory);
+				break;
+			case LIST_SERVER: break;
+			case LIST_CLIENT: break;
+			case GET_SYNC_DIR: break;
+			case EXIT: break;
+			default: printf("\nINVALID COMMAND \n"); break;
 		}
 
-		cli = find_or_createClient(argv[1]);
+		// SENDO MESSAGE OF THE USER COMMAND
+		n = sendto(sockfd, user_cmd, strlen(user_cmd) -1, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		// RECEIVE THE MESSAGE FROM THE SERVER ABOUT THE USER COMMAND
+		n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
+		fprintf(stderr, "%s\n", send_buffer);
+		bzero(send_buffer, BUFFER_TAM);
 
-		int login = login_server(argv[2], PORT);
+		switch(code){
+			case UPLOAD: send_file(directory); break;
+			case DOWNLOAD: get_file(directory); break;
+			case DELETE: delete_file(directory); break;
+			case LIST_SERVER: break;
+			case LIST_CLIENT: break;
+			case GET_SYNC_DIR: break;
+			case EXIT: close_session(); start = 0; break;
+			case ERROR:
+			default: printf("\nINVALID COMMAND \n"); break;
+		}
+
+		memset(user_cmd, 0, sizeof user_cmd);
+		command_code = 0;
+		bzero(send_buffer, BUFFER_TAM);
+
+		printf("\n\nPress enter...\n");
+		char enter = 0;
+		while (enter != '\r' && enter != '\n') {
+			enter = getchar();
+		}
+
+	}
+}
+
+int main(int argc, char *argv[]){
+	if (argc < 4) {
+		fprintf(stderr, "[ERROR] Use the following syntax : ./dropboxClient {userid} {user_adress} {PORT}\n");
+		exit(0);
+	}
+
+	cli = find_or_createClient(argv[1]);
+
+	int login = login_server(argv[2], PORT);
 
 	if(login)
 	{
-		int start = 1;
 		int dir = get_sync_dir(argv[1]);
 		if(dir == 0) // == 0 Diretório já existe, pode ser sincronizado
 		 //sync_client(); //Sync client files with the server
@@ -297,70 +359,17 @@ int main(int argc, char *argv[]){
 		n = sendto(sockfd, request, sizeof(struct Request), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 		//RECEIVE THE ANSWER FROM THE SERVER
 		n = recvfrom(sockfd,  request, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &from, &length);
-		if(request->cmd != ACK) fprintf(stderr, "[ERROR] It was not possible connect to this server\n", );
-		
-		while(start){
+		if(request->cmd != ACK) fprintf(stderr, "[ERROR] It was not possible connect to this server\n" );
 
-			showMenu(cli);
-			printf("cmd > ");
-			fgets(user_cmd, sizeof(user_cmd), stdin);
-			user_cmd[strlen(user_cmd) -1] = '\0';
+		// Cria a thred de sincronização do diretório
+		pthread_t sync_thread;
 
-			int code = parseCommand(user_cmd);
+		int rc = pthread_create(&sync_thread, NULL, sync_client, NULL);
+		if(rc)
+			fprintf(stderr,"A request could not be processed\n");
 
-			char *directory; //Used only if the action is upload/download/delete a file.
-							//Takes the directory of the file.
-
-			switch(code){
-				case UPLOAD:
-					directory = strndup(user_cmd+7, strlen(user_cmd));
-					fprintf(stderr, "Uploading File : %s\n", directory);
-					break;
-				case DOWNLOAD:
-					directory = strndup(user_cmd+9, strlen(user_cmd));
-					fprintf(stderr, "%s\n", directory);
-					break;
-				case DELETE:
-					directory = strndup(user_cmd+7, strlen(user_cmd));
-					fprintf(stderr, "%s\n", directory);
-					break;
-				case LIST_SERVER: break;
-				case LIST_CLIENT: break;
-				case GET_SYNC_DIR: break;
-				case EXIT: break;
-				default: printf("\nINVALID COMMAND \n"); break;
-			}
-
-			// SENDO MESSAGE OF THE USER COMMAND
-			n = sendto(sockfd, user_cmd, strlen(user_cmd) -1, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-			// RECEIVE THE MESSAGE FROM THE SERVER ABOUT THE USER COMMAND
-			n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
-			fprintf(stderr, "%s\n", send_buffer);
-			bzero(send_buffer, BUFFER_TAM);
-
-			switch(code){
-				case UPLOAD: send_file(directory); break;
-				case DOWNLOAD: get_file(directory); break;
-				case DELETE: delete_file(directory); break;
-				case LIST_SERVER: break;
-				case LIST_CLIENT: break;
-				case GET_SYNC_DIR: break;
-				case EXIT: close_session(); start = 0; break;
-				case ERROR:
-				default: printf("\nINVALID COMMAND \n"); break;
-			}
-
-			memset(user_cmd, 0, sizeof user_cmd);
-			command_code = 0;
-			bzero(send_buffer, BUFFER_TAM);
-
-			printf("\n\nPress enter...\n");
-			char enter = 0;
-			while (enter != '\r' && enter != '\n') {
-				enter = getchar();
-			}
-
-		}
+		//LOOP para pegar o comando do client
+		command_get_func();
 	}
 	return 0;
 }

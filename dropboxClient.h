@@ -24,7 +24,7 @@ int login_server(char *host, int port);
   Sincroniza o diretório “sync_dir_<nomeusuário>” com
   o servidor.
 */
-void sync_client();
+void *sync_client();
 
 
 

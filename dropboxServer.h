@@ -29,7 +29,4 @@ void receive_file(char *file);
 */
 void send_file(char *file);
 
-int receiveCommandFromClient();
-void establishConnectionWithClient();
-
 void *handle_request();
