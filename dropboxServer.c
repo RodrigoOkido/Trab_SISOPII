@@ -8,7 +8,7 @@
 #include "dropboxUtil.h"
 #include "dropboxServer.h"
 #include "dropboxClient.h"
-
+#include <sys/stat.h>
 #include <pthread.h>
 
 // Caso alguma thread comece a executar
@@ -81,7 +81,45 @@ void receive_file(char *file) {
 
 
 void send_file(char *file){
-  //TODO
+
+  	
+	int fileSize;
+	char path[273];
+	strcpy(path, serverDir);
+	strcpy(path, actualClient->userid);
+	strcat(path, "/");
+	strcat(path, file);
+
+	int bytes = 0;
+	
+	FILE *sendFile;
+
+	if (sendFile = fopen(path, "rb")) {
+
+		fseek(sendFile, 0L, SEEK_END);
+		fileSize = ftell(sendFile);
+
+		rewind(sendFile);
+
+		bytes = sendto(sockfd, &fileSize, sizeof(int), 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+
+		while (!feof(sendFile)) {
+
+		
+			fread(buf, BUFFER_TAM,1, sendFile);
+
+			bytes = sendto(sockfd, buf, BUFFER_TAM, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+			if (bytes < 0) {
+				printf("Error sending file");
+			}
+		}
+		fclose(sendFile);
+	} else { // arquivo nao existe
+	
+		fileSize = -1;
+		bytes = sendto(sockfd, &fileSize, sizeof(int), 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+	}
+ 
 }
 
 void delete_file_request(char* file){
