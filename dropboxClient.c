@@ -257,21 +257,26 @@ int main(int argc, char *argv[]){
 						int code = parseCommand(user_cmd);
 
 						char *directory; //Used only if the action is upload/download/delete a file.
-														 //Takes the directory of the file.
+										//Takes the directory of the file.
 
-						if (code == 1){
-							directory = strndup(user_cmd+7, strlen(user_cmd));
-							fprintf(stderr, "Uploading File : %s\n", directory);
-						}
-
-						else if (code == 2){
-							directory = strndup(user_cmd+9, strlen(user_cmd));
-							fprintf(stderr, "%s\n", directory);
-						}
-
-						else if (code == 3){
-							directory = strndup(user_cmd+7, strlen(user_cmd));
-							fprintf(stderr, "%s\n", directory);
+						switch(code){
+							case UPLOAD: 
+								directory = strndup(user_cmd+7, strlen(user_cmd));
+								fprintf(stderr, "Uploading File : %s\n", directory);
+								break;
+							case DOWLOAD: 
+								directory = strndup(user_cmd+9, strlen(user_cmd));
+								fprintf(stderr, "%s\n", directory);
+								break;
+							case DELETE: 
+								directory = strndup(user_cmd+7, strlen(user_cmd));
+								fprintf(stderr, "%s\n", directory);
+								break;
+							case LIST_SERVER: break;
+							case LIST_CLIENT: break;
+							case GET_SYNC_DIR: break;
+							case EXIT: break;
+							default: printf("\nINVALID COMMAND \n"); break;
 						}
 
 						// SENDO MESSAGE OF THE USER COMMAND
@@ -282,13 +287,14 @@ int main(int argc, char *argv[]){
 						bzero(send_buffer, BUFFER_TAM);
 
 						switch(code){
-							case 1: send_file(directory); break;
-							case 2: get_file(directory); break;
-							case 3: break;
-							case 4: break;
-							case 5: break;
-							case 6: break;
-							case 7: close_session(); start = 0; break;
+							case UPLOAD: send_file(directory); break;
+							case DOWLOAD: get_file(directory); break;
+							case DELETE: break;
+							case LIST_SERVER: break;
+							case LIST_CLIENT: break;
+							case GET_SYNC_DIR: break;
+							case EXIT: close_session(); start = 0; break;
+							case ERROR:
 							default: printf("\nINVALID COMMAND \n"); break;
 						}
 

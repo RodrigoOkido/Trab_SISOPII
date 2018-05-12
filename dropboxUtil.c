@@ -105,35 +105,35 @@ int parseCommand (char cmd[]){
 
   	if(strncmp(cmd,"upload",6) == 0){
   		//printf("UPLOAD CODE\n");
-  		command_code = 1;
+  		command_code = UPLOAD;
   	}
   	else if(strncmp(cmd,"download",8) == 0){
   		//printf("DOWNLOAD CODE\n");
-  		command_code = 2;
+  		command_code = DOWNLOAD;
     }
     else if(strncmp(cmd,"delete",6) == 0){
       //printf("DELETE CODE\n");
-      command_code = 3;
+      command_code = DELETE;
     }
   	else if(strncmp(cmd,"list_server",11) == 0){
   		//printf("LIST_SERVER CODE\n");
-  		command_code = 4;
+  		command_code = LIST_SERVER;
   	}
   	else if(strncmp(cmd,"list_client",11) == 0){
   		//printf("LIST_CLIENT CODE\n");
-  		command_code = 5;
+  		command_code = LIST_CLIENT;
   	}
   	else if(strncmp(cmd,"get_sync_dir",11) == 0){
   		//printf("GET_SYNC_DIR CODE\n");
-  		command_code = 6;
+  		command_code = GET_SYNC_DIR;
   	}
   	else if(strncmp(cmd,"exit",4) == 0){
   		//printf("EXIT CODE\n");
-  		command_code = 7;
+  		command_code = EXIT;
   	}
   	else {
   		//printf("ERROR CODE\n");
-  		command_code = -1;
+  		command_code = ERROR;
   	}
 
   	return command_code;

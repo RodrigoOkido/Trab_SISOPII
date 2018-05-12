@@ -29,6 +29,17 @@
 #define DATE 18
 #define MAXCLIENTS 150
 
+//parseCommands 
+#define UPLOAD  1
+#define DOWNLOAD  2
+#define DELETE  3
+#define LIST_SERVER  4
+#define LIST_CLIENT  5
+#define GET_SYNC_DIR  6
+#define EXIT  7
+#define ERROR  -1
+
+
 #define DEBUG 1 //DEBUGGING PURPOSE
 
 extern int command_code;

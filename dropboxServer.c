@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
 
 			switch(server_code){
 
-				case 1:	//IF SERVER CODE IS ONE, THE SERVER PREPARES FOR RECEIVE A FILE
+				case UPLOAD:	//IF SERVER CODE IS ONE, THE SERVER PREPARES FOR RECEIVE A FILE
 						n = sendto(sockfd, "[SERVER] COMMAND RECEIVED!\n", 26, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 						n = recvfrom(sockfd, buf, sizeof(buf), MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);
 						filesize = atoi(buf);
@@ -137,8 +137,14 @@ int main(int argc, char *argv[])
 						receive_file(actualClient->file_info[actualClient->files_qty-1].name); //NOT WORKING YET
 						break; 
 						
-				case 2: break;
-				
+				case DOWLOAD: break;
+				case DELETE: break;
+				case LIST_SERVER: break;
+				case LIST_CLIENT: break;
+				case GET_SYNC_DIR: break;
+				case EXIT: break;
+
+				case ERROR:
 				default: n = sendto(sockfd, "[SERVER] COMMAND ERROR!\n", 23, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 						 break;
 			}
