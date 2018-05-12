@@ -37,14 +37,10 @@ void showMenu(CLIENT* actualClient) {
 
 }
 
-
-
 void iniciateList(){
     total_client = 0;
     client_list = malloc(MAXCLIENTS * sizeof(CLIENT));
 }
-
-
 
 CLIENT* create_and_setClient(char* user_id) {
 
@@ -97,8 +93,6 @@ CLIENT* find_or_createClient(char* userid) {
         return create_and_setClient(userid);
     }
 }
-
-
 
 int parseCommand (char cmd[]){
 
@@ -181,6 +175,35 @@ int parseFile(char* file){
 
     memset(name, 0, sizeof name);
     memset(ext, 0, sizeof ext);
+}
+
+void delete_info_file(CLIENT* actualClient, char* namefile){
+  //atualiza quantidade de arquivos
+  actualClient->files_qty = actualClient->files_qty - 1;
+
+  int i;
+  //percorre array de arquivos para fazer match do nome
+  for (i = 0; i < MAXFILES ; i++){
+    if (strncmp(actualClient->file_info[i].name, namefile, sizeof(namefile)) == 0) {
+
+      if(DEBUG) {
+        fprintf(stderr,"CLIENT INDEX: %i",i);
+      }
+
+      //zera file_info (like createNewfile)
+      strncpy(actualClient->file_info[i].name, filename, MAXNAME-1);
+      actualClient->file_info[i].name[MAXNAME-1] = '\0';
+
+      strncpy(actualClient->file_info[i].extension, extension, EXT);
+      actualClient->file_info[i].extension[EXT] = '\0';
+
+      strncpy(actualClient->file_info[i].last_modified, "", sizeof(DATE));
+      actualClient->file_info[i].last_modified[DATE] = '\0';
+
+      //convenção para  elemento do array livre
+      actualClient->file_info[i].size = -1;
+    }
+  }
 }
 
 

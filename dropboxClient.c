@@ -245,8 +245,11 @@ void delete_file(char *file){
 		//TO DO parse path local (?)
 		if(remove(path) != 0) //remove file cliente side
 			printf("Error: unable to delete the %s file\n", file);
-		else
+		else{
+
+			delete_info_file(cli, file);
 			printf("File ( %s ) deleted sucessfully!\n", file);
+		}
 	}
 
 

@@ -146,7 +146,7 @@ int parseCommand(char cmd[]);
 int parseFile(char* File);
 
 
-
+void delete_info_file(CLIENT* actualClient, char* namefile);
 /**
  * Create a new file. This function is called when the user wants to upload
  * some file.
