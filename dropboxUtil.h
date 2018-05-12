@@ -43,6 +43,7 @@
 #define DEBUG 1 //DEBUGGING PURPOSE
 
 extern int command_code;
+extern int mkdir();
 
 /**
   name[MAXNAME] refere-se ao nome do arquivo.

@@ -264,7 +264,7 @@ int main(int argc, char *argv[]){
 								directory = strndup(user_cmd+7, strlen(user_cmd));
 								fprintf(stderr, "Uploading File : %s\n", directory);
 								break;
-							case DOWLOAD: 
+							case DOWNLOAD: 
 								directory = strndup(user_cmd+9, strlen(user_cmd));
 								fprintf(stderr, "%s\n", directory);
 								break;
@@ -288,7 +288,7 @@ int main(int argc, char *argv[]){
 
 						switch(code){
 							case UPLOAD: send_file(directory); break;
-							case DOWLOAD: get_file(directory); break;
+							case DOWNLOAD: get_file(directory); break;
 							case DELETE: break;
 							case LIST_SERVER: break;
 							case LIST_CLIENT: break;

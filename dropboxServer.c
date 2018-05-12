@@ -5,11 +5,16 @@
   Integrantes: Douglas Lazaro, Henrique la Porta, Lisiane Aguiar , Rodrigo Okido
 */
 
-
 #include "dropboxUtil.h"
 #include "dropboxServer.h"
 #include "dropboxClient.h"
 
+#include <pthread.h>
+
+// Caso alguma thread comece a executar
+pthread_mutex_t exec_mutex     = PTHREAD_MUTEX_INITIALIZER;
+// Caso formos usar :D
+pthread_cond_t  condition_var   = PTHREAD_COND_INITIALIZER;
 
 int sockfd, n;
 socklen_t clilen;
@@ -137,7 +142,7 @@ int main(int argc, char *argv[])
 						receive_file(actualClient->file_info[actualClient->files_qty-1].name); //NOT WORKING YET
 						break; 
 						
-				case DOWLOAD: break;
+				case DOWNLOAD: break;
 				case DELETE: break;
 				case LIST_SERVER: break;
 				case LIST_CLIENT: break;
