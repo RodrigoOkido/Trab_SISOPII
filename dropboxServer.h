@@ -5,8 +5,6 @@
   Integrantes: Douglas Lazaro, Henrique la Porta, Lisiane Aguiar , Rodrigo Okido
 */
 
-
-
 /**
   Sincroniza o servidor com o diretório “sync_dir_<nomeusuário>” do
   cliente.
@@ -33,3 +31,5 @@ void send_file(char *file);
 
 int receiveCommandFromClient();
 void establishConnectionWithClient();
+
+void *handle_request();

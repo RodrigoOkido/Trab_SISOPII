@@ -281,86 +281,86 @@ int main(int argc, char *argv[]){
 
 		int login = login_server(argv[2], PORT);
 
-	  if(login){
+	if(login)
+	{
+		int start = 1;
+		int dir = get_sync_dir(argv[1]);
+		if(dir == 0) // == 0 Diretório já existe, pode ser sincronizado
+		 //sync_client(); //Sync client files with the server
+		if(dir == -2) exit(dir);
 
-				int start = 1;
-				int dir = get_sync_dir(argv[1]);
-				if(dir == 0) // == 0 Diretório já existe, pode ser sincronizado
-				 //sync_client(); //Sync client files with the server
-				if(dir == -2) exit(dir);
+		struct Request *request = (struct Request*)malloc(sizeof(struct Request));
+		request->cmd = CONNECT;
+		strcpy(request->user, cli->userid);
 
-				//SEND USER ID TO SERVER
-				n = sendto(sockfd, cli->userid, UNIQUE_ID, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-				//RECEIVE THE ANSWER FROM THE SERVER
-				n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
-				fprintf(stderr, "%s\n", send_buffer);
-				bzero(send_buffer, BUFFER_TAM);
+		//SEND USER ID TO SERVER
+		n = sendto(sockfd, request, sizeof(struct Request), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		//RECEIVE THE ANSWER FROM THE SERVER
+		n = recvfrom(sockfd,  request, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &from, &length);
+		if(request->cmd != ACK) fprintf(stderr, "[ERROR] It was not possible connect to this server\n", );
+		
+		while(start){
 
-	      while(start){
+			showMenu(cli);
+			printf("cmd > ");
+			fgets(user_cmd, sizeof(user_cmd), stdin);
+			user_cmd[strlen(user_cmd) -1] = '\0';
 
-						showMenu(cli);
+			int code = parseCommand(user_cmd);
 
-						printf("cmd > ");
-						fgets(user_cmd, sizeof(user_cmd), stdin);
-						user_cmd[strlen(user_cmd) -1] = '\0';
+			char *directory; //Used only if the action is upload/download/delete a file.
+							//Takes the directory of the file.
 
-						int code = parseCommand(user_cmd);
+			switch(code){
+				case UPLOAD:
+					directory = strndup(user_cmd+7, strlen(user_cmd));
+					fprintf(stderr, "Uploading File : %s\n", directory);
+					break;
+				case DOWNLOAD:
+					directory = strndup(user_cmd+9, strlen(user_cmd));
+					fprintf(stderr, "%s\n", directory);
+					break;
+				case DELETE:
+					directory = strndup(user_cmd+7, strlen(user_cmd));
+					fprintf(stderr, "%s\n", directory);
+					break;
+				case LIST_SERVER: break;
+				case LIST_CLIENT: break;
+				case GET_SYNC_DIR: break;
+				case EXIT: break;
+				default: printf("\nINVALID COMMAND \n"); break;
+			}
 
-						char *directory; //Used only if the action is upload/download/delete a file.
-										//Takes the directory of the file.
+			// SENDO MESSAGE OF THE USER COMMAND
+			n = sendto(sockfd, user_cmd, strlen(user_cmd) -1, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+			// RECEIVE THE MESSAGE FROM THE SERVER ABOUT THE USER COMMAND
+			n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
+			fprintf(stderr, "%s\n", send_buffer);
+			bzero(send_buffer, BUFFER_TAM);
 
-						switch(code){
-							case UPLOAD:
-								directory = strndup(user_cmd+7, strlen(user_cmd));
-								fprintf(stderr, "Uploading File : %s\n", directory);
-								break;
-							case DOWNLOAD:
-								directory = strndup(user_cmd+9, strlen(user_cmd));
-								fprintf(stderr, "%s\n", directory);
-								break;
-							case DELETE:
-								directory = strndup(user_cmd+7, strlen(user_cmd));
-								fprintf(stderr, "%s\n", directory);
-								break;
-							case LIST_SERVER: break;
-							case LIST_CLIENT: break;
-							case GET_SYNC_DIR: break;
-							case EXIT: break;
-							default: printf("\nINVALID COMMAND \n"); break;
-						}
+			switch(code){
+				case UPLOAD: send_file(directory); break;
+				case DOWNLOAD: get_file(directory); break;
+				case DELETE: delete_file(directory); break;
+				case LIST_SERVER: break;
+				case LIST_CLIENT: break;
+				case GET_SYNC_DIR: break;
+				case EXIT: close_session(); start = 0; break;
+				case ERROR:
+				default: printf("\nINVALID COMMAND \n"); break;
+			}
 
-						// SENDO MESSAGE OF THE USER COMMAND
-						n = sendto(sockfd, user_cmd, strlen(user_cmd) -1, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-						// RECEIVE THE MESSAGE FROM THE SERVER ABOUT THE USER COMMAND
-						n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
-						fprintf(stderr, "%s\n", send_buffer);
-						bzero(send_buffer, BUFFER_TAM);
+			memset(user_cmd, 0, sizeof user_cmd);
+			command_code = 0;
+			bzero(send_buffer, BUFFER_TAM);
 
-						switch(code){
-							case UPLOAD: send_file(directory); break;
-							case DOWNLOAD: get_file(directory); break;
-							case DELETE: delete_file(directory); break;
-							case LIST_SERVER: break;
-							case LIST_CLIENT: break;
-							case GET_SYNC_DIR: break;
-							case EXIT: close_session(); start = 0; break;
-							case ERROR:
-							default: printf("\nINVALID COMMAND \n"); break;
-						}
+			printf("\n\nPress enter...\n");
+			char enter = 0;
+			while (enter != '\r' && enter != '\n') {
+				enter = getchar();
+			}
 
-						memset(user_cmd, 0, sizeof user_cmd);
-						command_code = 0;
-						bzero(send_buffer, BUFFER_TAM);
-
-						printf("\n\nPress enter...\n");
-						char enter = 0;
-						while (enter != '\r' && enter != '\n') {
-							enter = getchar();
-						}
-
-	      }
-
-	  }
-
-		return 0;
+		}
+	}
+	return 0;
 }

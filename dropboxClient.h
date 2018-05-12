@@ -11,7 +11,6 @@
 #define EVENT_BUF_LEN     ( 1024 * ( EVENT_SIZE + 16 ) )
 
 
-
 /**
   Estabelece uma sessão entre o cliente com o servidor.
   @param host endereço do servidor

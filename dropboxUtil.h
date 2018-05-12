@@ -37,8 +37,11 @@
 #define LIST_CLIENT  5
 #define GET_SYNC_DIR  6
 #define EXIT  7
+#define CONNECT 99
 #define ERROR  -1
 
+#define MAX_THREADS 100
+#define ACK 100
 
 #define DEBUG 1 //DEBUGGING PURPOSE
 
@@ -73,13 +76,20 @@ typedef struct file_info	{
   possui no servidor.
   logged_in – cliente está logado ou não.
 */
-typedef struct client	{
+typedef struct client {
   int devices[2];
   char userid[UNIQUE_ID];
   FILE_INFO file_info[MAXFILES];
-	int files_qty;
+  int files_qty;
   int logged_in;
 } CLIENT;
+
+
+struct Request {
+  int cmd;
+  char user[MAXNAME];
+  char buff[BUFFER_TAM];
+};
 
 #ifndef _DROPBOXUTIL_H_
 #define _DROPBOXUTIL_H_
