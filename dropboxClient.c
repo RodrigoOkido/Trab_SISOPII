@@ -233,6 +233,31 @@ void delete_file(char *file){
 	return;
 }
 
+void list_dir(int local){
+
+	// Envia o comando para o servidor, para iniciar o upload
+	struct Request *request = (struct Request*)malloc(sizeof(struct Request));
+	request->cmd = local;
+	strcpy(request->user, cli->userid);
+
+	n = sendto(sockfd, request, sizeof(struct Request), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr));
+	//RECEIVE THE ACK FOR THE COMMAND
+	n = recvfrom(sockfd,  request, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &from, &length);
+	if(request->cmd != ACK){
+		fprintf(stderr, "[ERROR] It was not possible execute the command in server\n" );
+		return;
+	}
+	else{
+		if(local == LIST_CLIENT){
+			show_files(cli, 0);		
+		}
+		else{
+			CLIENT *serverClient = (CLIENT *) request->buffer;
+			show_files(serverClient, 1);		
+		}
+	}
+}
+
 
 
 void close_session(){
@@ -268,13 +293,19 @@ void command_get_func()
 			case DOWNLOAD:
 				directory = strndup(user_cmd+9, strlen(user_cmd));
 				fprintf(stderr, "%s\n", directory);
+				// get_file(directory); //TO DO
 				break;
 			case DELETE:
 				directory = strndup(user_cmd+7, strlen(user_cmd));
 				fprintf(stderr, "%s\n", directory);
+				delete_file(directory);
 				break;
-			case LIST_SERVER: break;
-			case LIST_CLIENT: break;
+			case LIST_SERVER: 
+				list_dir(LIST_SERVER);
+				break;
+			case LIST_CLIENT: 
+				list_dir(LIST_CLIENT);
+				break;
 			case GET_SYNC_DIR: break;
 			case EXIT: break;
 			default: printf("\nINVALID COMMAND \n"); break;

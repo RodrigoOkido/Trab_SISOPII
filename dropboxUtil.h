@@ -184,3 +184,5 @@ int createNewFile(CLIENT* actualClient, struct File_package* file);
   @return <  0 - ERROR
 */
 int get_sync_dir(char* userId);
+
+void show_files(CLIENT * client, int isServer);

@@ -30,8 +30,8 @@ void showMenu(CLIENT* actualClient) {
     printf("[1] Upload a file (cmd: upload <path/filename.ext)\n");
     printf("[2] Download a file (cmd: download <filename.ext>)\n");
     printf("[3] Delete a file (cmd: delete <filename.ext>)\n");
-    printf("[4] List my files stored (cmd: list_server) \n");
-    printf("[5] List files stored in directory (cmd: sync_dir_<username>) \n");
+    printf("[4] List my files stored in server (cmd: list_server) \n");
+    printf("[5] List files stored in directory (cmd: list_client) \n");
     printf("[6] Create sync_dir_<username> folder in the user /home (cmd: get_sync_dir) \n");
     printf("[7] Exit (cmd: exit)\n\n");
 
@@ -65,8 +65,6 @@ CLIENT* create_and_setClient(char* user_id) {
     return &client_list[total_client];
     total_client++; //Increment the total of the Clients after created.
 }
-
-
 
 CLIENT* find_or_createClient(char* userid) {
 
@@ -237,4 +235,25 @@ int get_sync_dir(char* userId){
 
     return 1; //Pasta foi criada tudo OK
 
+}
+
+void show_files(CLIENT * client, int isServer){
+
+  if(isServer){
+    printf("Path: %s%s \n", serverDir, client->userid);
+  }
+  else{
+    printf("Path: %s%s \n", homeDir, client->userid);
+  }
+
+
+  int i, j = 0;
+  //percorre array de arquivos e printa
+  for (i = 0; i < MAXFILES ; i++){
+
+    if(client->file_info[i].size != 0 && client->file_info[i].size != -1){
+      j++;
+      printf("%i - \t name : %s \t extension: %s \t last_modified: %s \t size: %i \n", j, client->file_info[i].name, client->file_info[i].extension, client->file_info[i].last_modified, client->file_info[i].size);
+    }
+  }
 }

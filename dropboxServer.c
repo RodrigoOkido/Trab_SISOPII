@@ -211,10 +211,15 @@ void *handle_request(void *req)
 		case DELETE:
 				n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 				delete_file_request(request->user, request->buffer); 
-
 				break;
-		case LIST_SERVER: break;
-		case LIST_CLIENT: break;
+		case LIST_SERVER: 
+				memcpy(answer->buffer, &actualClient, sizeof(actualClient));
+				answer->buffer[sizeof(actualClient)] = '\0';
+				n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr)); 		
+				break;
+		case LIST_CLIENT:
+				n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr)); 
+				break;
 		case GET_SYNC_DIR: break;
 		case EXIT: break;
 
