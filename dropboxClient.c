@@ -195,8 +195,6 @@ void get_file(char *file){
 
 }
 
-
-
 void delete_file(char *file){
 
 	//path = MAXNAME + "./tmp/sync_dir_" => 273
@@ -206,17 +204,21 @@ void delete_file(char *file){
 	strcat(path, "/");
 	strcat(path, file);
 
+	// Envia o comando para o servidor, para iniciar o upload
+	struct Request *request = (struct Request*)malloc(sizeof(struct Request));
+	request->cmd = DELETE;
+	strcpy(request->user, cli->userid);
 
-	//clean buffer
-	bzero(send_buffer, BUFFER_TAM);
-	
-	n = sendto(sockfd, file, strlen(file), MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-	n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
-	fprintf(stderr, "%s\n", send_buffer);
+	strcpy(request->buffer, file);
+	request->buffer[sizeof(file)] = '\0';
 
-	//ACK
-	if (n < 0)
-		printf("ERROR recvfrom\n");
+	n = sendto(sockfd, request, sizeof(struct Request), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr));
+	//RECEIVE THE ACK FOR THE COMMAND
+	n = recvfrom(sockfd,  request, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &from, &length);
+	if(request->cmd != ACK){
+		fprintf(stderr, "[ERROR] It was not possible execute the command in server\n" );
+		return;
+	}
 	else{
 		//TO DO parse path local (?)
 		if(remove(path) != 0) //remove file cliente side
@@ -228,10 +230,7 @@ void delete_file(char *file){
 		}
 	}
 
-
-	bzero(send_buffer, BUFFER_TAM);
 	return;
-
 }
 
 

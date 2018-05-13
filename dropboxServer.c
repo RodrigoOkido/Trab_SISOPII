@@ -59,7 +59,7 @@ void receive_file() {
 		if(DEBUG){
 			printf("\n\nReceived packet from %s:%d\n", inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
 			printf("Packet Number: %i\n", fileReceive->package);
-			printf("Packet Size Sent: %i\n", strlen(fileReceive->buffer));
+			printf("Packet Size Sent: %i\n", (int) strlen(fileReceive->buffer));
 			printf("Received a datagram:\n%s", fileReceive->buffer);
 		}
 
@@ -132,12 +132,14 @@ void send_file(char *file){
  
 }
 
-void delete_file_request(char* file){
+void delete_file_request(char * user, char * file){
+
+	CLIENT* client = find_or_createClient(user);
 
 	//path = MAXNAME + "./home/sync_dir_" => 273
 	char path[273];
 	strcpy(path, serverDir);
-	strcpy(path, actualClient->userid);
+	strcpy(path, client->userid);
 	strcat(path, "/");
 	strcat(path, file);
 
@@ -147,7 +149,7 @@ void delete_file_request(char* file){
 	  printf("Error: unable to delete the %s file\n", file);
 	}
 	else{
-		delete_info_file(actualClient, file);
+		delete_info_file(client, file);
 	}
 }
 
@@ -207,12 +209,8 @@ void *handle_request(void *req)
 
 		case DOWNLOAD: break;
 		case DELETE:
-				bzero(buf, sizeof(buf));
-
-				n = sendto(sockfd, "[SERVER] COMMAND RECEIVED!\n", 26, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
-				n = recvfrom(sockfd, buf, sizeof(buf), MSG_CONFIRM, (struct sockaddr *) &cli_addr, &clilen);
-
-				delete_file_request(buf); 
+				n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+				delete_file_request(request->user, request->buffer); 
 
 				break;
 		case LIST_SERVER: break;
