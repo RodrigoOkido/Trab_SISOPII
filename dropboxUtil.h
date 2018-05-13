@@ -88,7 +88,15 @@ typedef struct client {
 struct Request {
   int cmd;
   char user[MAXNAME];
-  char buff[BUFFER_TAM];
+  char buffer[BUFFER_TAM];
+};
+
+struct File_package {
+  char name[MAXNAME];
+  char extension[MAXNAME];
+  int size;
+  int package;
+  char buffer[BUFFER_TAM];
 };
 
 #ifndef _DROPBOXUTIL_H_
@@ -153,7 +161,7 @@ int parseCommand(char cmd[]);
 	@return return 0 - OK
 	@return return < 0 - SOMETHING WRONG
 */
-int parseFile(char* File);
+int parseFile(struct File_package* file);
 
 
 void delete_info_file(CLIENT* actualClient, char* namefile);
@@ -164,7 +172,7 @@ void delete_info_file(CLIENT* actualClient, char* namefile);
  * @return return 0 - new file created successfully
  * @return return < 0 - something wrong
  */
-int createNewFile(CLIENT* actualClient, int filesize);
+int createNewFile(CLIENT* actualClient, struct File_package* file);
 
 
 

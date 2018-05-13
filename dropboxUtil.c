@@ -133,48 +133,21 @@ int parseCommand (char cmd[]){
 }
 
 
+int parseFile(struct File_package* file){
 
-int parseFile(char* file){
-
-    int lastSlashIndex; //Variable to store the index of the last slash ('/')
-    int pointIndex; //Variable to store the point to indicate the extension ('.')
-
-    int i;
-
-    //Locate the index of the last '/' and '.'
-    for (i = 0 ; i < strlen(file) ; i++){
-        if (file[i] == '/'){
-          lastSlashIndex = i;
-        }
-        if (file[i] == '.'){
-          pointIndex = i;
-        }
+    char *word = strtok(file->name," ");
+    char auxFile[MAXNAME];
+    while(word){
+        strcpy(auxFile, word);
+        word = strtok(NULL, " ");
     }
 
-    int file_name_size = pointIndex-lastSlashIndex; //Give the size of the filename
-    int file_ext = strlen(file) - pointIndex; //Give the size of extension
+    char *token = strtok(auxFile, ".");
+    strcpy(file->name, token);
+    token = strtok(NULL, ".");
+    strcpy(file->extension, token);
 
-    char name [file_name_size];
-    if (lastSlashIndex == 0){ //If the file is located on current directory
-      memcpy( name, &file[lastSlashIndex], file_name_size); //Pass the filename to name
-    } else { //else increment lastSlashIndex to start taking the file without '/'
-      memcpy( name, &file[lastSlashIndex+1], file_name_size);
-    }
-    name[file_name_size] = '\0'; //Guarantee the end of the word
-
-    char ext [file_ext];
-    memcpy( ext, &file[pointIndex], file_ext); //Pass the extension name to ext
-    ext[file_ext] = '\0'; //Guarantee the end of the word
-
-
-    //Copies the name and extension to 'filename' and 'extension'
-    strncpy(filename , name , sizeof(name));
-    filename[MAXNAME-1] = '\0';
-    strncpy(extension , ext , sizeof(ext));
-    extension[EXT-1] = '\0';
-
-    memset(name, 0, sizeof name);
-    memset(ext, 0, sizeof ext);
+    return 0;
 }
 
 void delete_info_file(CLIENT* actualClient, char* namefile){
@@ -208,13 +181,13 @@ void delete_info_file(CLIENT* actualClient, char* namefile){
 
 
 
-int createNewFile(CLIENT* actualClient, int filesize){
+int createNewFile(CLIENT* actualClient, struct File_package* file){
 
     //Creating and preparing the new file
     FILE_INFO* newFile = malloc(sizeof(FILE_INFO));
-    strncpy(newFile->name, filename, MAXNAME-1);
+    strncpy(newFile->name, file->name, MAXNAME-1);
     newFile->name[MAXNAME-1] = '\0';
-    strncpy(newFile->extension, extension, EXT);
+    strncpy(newFile->extension, file->extension, EXT);
     newFile->extension[EXT] = '\0';
 
     //Saving the actual time for the file recently created
@@ -225,7 +198,7 @@ int createNewFile(CLIENT* actualClient, int filesize){
     info = localtime( &rawtime );
     strftime(newFile->last_modified, DATE,"%x - %I:%M%p", info);
 
-    newFile->size = filesize;
+    newFile->size = file->size;
 
 
     //Checks if actualClient exists.
@@ -241,17 +214,8 @@ int createNewFile(CLIENT* actualClient, int filesize){
             fprintf(stderr,"QTD FILES : |%i|\n", actualClient->files_qty );
         }
 
-        //Clears the array for the next file
-        memset(filename, 0, sizeof filename);
-        //Clears the array for the next file extension
-        memset(extension, 0, sizeof extension);
-
         return 0;
     } else {
-        //Clears the array for the next file
-        memset(filename, 0, sizeof filename);
-        //Clears the array for the next file extension
-        memset(extension, 0, sizeof extension);
 
         return -1;
     }

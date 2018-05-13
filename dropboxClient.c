@@ -118,13 +118,9 @@ void send_file(char *file){
 	FILE *sendFile = fopen(file, "rb");
 	int packet, read_buffer; //packet - Counter of packets needed to send the file.
 													 //read_buffer - buffer which will receive the content of the file.
-
+	// Verifica se existe o arquivo
 	if (sendFile == NULL){
-		n = sendto(sockfd, "File not found..", 16, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
-		fprintf(stderr, "[CLIENT] File not found..\n");
-		fprintf(stderr, "%s\n", send_buffer);
-		bzero(send_buffer, BUFFER_TAM);
+		fprintf(stderr, "File not found..\n");
 		return;
 	}
 
@@ -132,80 +128,62 @@ void send_file(char *file){
 	file_length = ftell(sendFile); //Store the file length of the received file.
 	fseek(sendFile, 0, SEEK_SET); //Turn the pointer to the beginning.
 
-	char *filesize = "475";
+	// Envia o comando para o servidor, para iniciar o upload
+	struct Request *request = (struct Request*)malloc(sizeof(struct Request));
+	request->cmd = UPLOAD;
+	strcpy(request->user, cli->userid);
+	n = sendto(sockfd, request, sizeof(struct Request), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr));
 
+	//RECEIVE THE ACK FOR THE COMMAND
+	n = recvfrom(sockfd,  request, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &from, &length);
+	if(request->cmd != ACK){
+		fprintf(stderr, "[ERROR] It was not possible execute the command in server\n" );
+		return;
+	}
 
-	//SEND MESSAGE TO CHECK THE FILE LENGTH
-	n = sendto(sockfd, filesize, sizeof(filesize), MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-	n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
-	fprintf(stderr, "%s\n", send_buffer);
-	bzero(send_buffer, BUFFER_TAM);
+	//SEND STRUCT FILE WITH (NAME, EXTENSION, FILE_SIZE, PACKAGE NUM, first BUFFER)
+	struct File_package *fileSend = (struct File_package*)malloc(sizeof(struct File_package));
+	strcpy(fileSend->name, file);
+	parseFile(fileSend); 		//Parse the filename and file extension to do the struct (check dropboxUtil.c for this function)
+	fileSend->size = file_length;
+	fileSend->package = 1;
+	
+	while(!feof(sendFile)) {
 
+		int s = fread(fileSend->buffer, sizeof(char), sizeof(fileSend->buffer)-1, sendFile);
 
-	//SEND MESSAGE TO CHECK THE FILENAME AND EXTENSION.
-	n = sendto(sockfd, file, strlen(file), MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-	n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
-	fprintf(stderr, "%s\n", send_buffer);
-	bzero(send_buffer, BUFFER_TAM);
+		//Send data through our socket
+		do {
+			n = sendto(sockfd, fileSend, sizeof(struct File_package), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr));
+			if(n<0) printf("[ERROR] in package %d\n", fileSend->package);
+		} while(n < 0);
 
-	fprintf(stderr, "FILE LENGTH %i\n", file_length);
-	packet = 1; //Packet number.
-
-	if (file_length < BUFFER_TAM) {
-		read_buffer = fread(send_buffer, 1, file_length, sendFile);
-		n = sendto(sockfd, send_buffer, read_buffer, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-
-		if (n < 0)
-				printf("ERROR sendto\n");
 
 		if(DEBUG){
-				printf("\n");
-				printf("Packet Number: %i\n",packet);
-				printf("Packet Size Sent: %i\n",read_buffer);
-				printf("\n");
+			printf("\n");
+			printf("Packet Number: %i\n", fileSend->package);
+			printf("Packet Size Sent: %i\n",s);
+			printf("\n");
 		}
 
-		bzero(send_buffer, sizeof(send_buffer));
-	} else {
+		fileSend->package++;
 
-		while(!feof(sendFile)) {
-
-			read_buffer = fread(send_buffer, 1, sizeof(send_buffer)-1, sendFile);
-
-			//Send data through our socket
-			do {
-					n = sendto(sockfd, send_buffer, read_buffer, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-			} while(n < 0);
-
-
-			if(DEBUG){
-				printf("\n");
-				printf("Packet Number: %i\n",packet);
-				printf("Packet Size Sent: %i\n",read_buffer);
-				printf("\n");
-			}
-
-			packet++;
-
-			//Zero out our send buffer
-			bzero(send_buffer, sizeof(send_buffer));
-		}
+		//Zero out our send buffer
+		bzero(fileSend->buffer, sizeof(fileSend->buffer));
 
 	}
 
-
-	length = sizeof(struct sockaddr_in);
-	n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
-
+	// Ansew with ack
+	struct Request *answer = (struct Request*)malloc(sizeof(struct Request));
+	answer->cmd = ACK;
+	n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr));
 	if (n < 0)
 		printf("ERROR recvfrom\n");
 
-	printf("File ( %s ) uploaded sucessfully!\n", file);
+	printf("File ( %s ) uploaded sucessfully!\n", fileSend->name);
 	file_length = 0;
 
 	fclose(sendFile);
-
-	close(sockfd);
 
 }
 
@@ -286,6 +264,7 @@ void command_get_func()
 			case UPLOAD:
 				directory = strndup(user_cmd+7, strlen(user_cmd));
 				fprintf(stderr, "Uploading File : %s\n", directory);
+				send_file(directory);
 				break;
 			case DOWNLOAD:
 				directory = strndup(user_cmd+9, strlen(user_cmd));
@@ -301,16 +280,16 @@ void command_get_func()
 			case EXIT: break;
 			default: printf("\nINVALID COMMAND \n"); break;
 		}
-
+		/*
 		// SENDO MESSAGE OF THE USER COMMAND
-		n = sendto(sockfd, user_cmd, strlen(user_cmd) -1, MSG_CONFIRM, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		n = sendto(sockfd, user_cmd, strlen(user_cmd) -1, MSG_CONFIRM,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 		// RECEIVE THE MESSAGE FROM THE SERVER ABOUT THE USER COMMAND
 		n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
 		fprintf(stderr, "%s\n", send_buffer);
 		bzero(send_buffer, BUFFER_TAM);
 
 		switch(code){
-			case UPLOAD: send_file(directory); break;
+			case UPLOAD:  break;
 			case DOWNLOAD: get_file(directory); break;
 			case DELETE: delete_file(directory); break;
 			case LIST_SERVER: break;
@@ -324,7 +303,7 @@ void command_get_func()
 		memset(user_cmd, 0, sizeof user_cmd);
 		command_code = 0;
 		bzero(send_buffer, BUFFER_TAM);
-
+		*/
 		printf("\n\nPress enter...\n");
 		char enter = 0;
 		while (enter != '\r' && enter != '\n') {
@@ -364,9 +343,9 @@ int main(int argc, char *argv[]){
 		// Cria a thred de sincronização do diretório
 		pthread_t sync_thread;
 
-		int rc = pthread_create(&sync_thread, NULL, sync_client, NULL);
-		if(rc)
-			fprintf(stderr,"A request could not be processed\n");
+		//int rc = pthread_create(&sync_thread, NULL, sync_client, NULL);
+		//if(rc)
+		//	fprintf(stderr,"A request could not be processed\n");
 
 		//LOOP para pegar o comando do client
 		command_get_func();
