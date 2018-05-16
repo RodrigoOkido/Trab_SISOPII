@@ -85,19 +85,19 @@ typedef struct client {
 } CLIENT;
 
 
-struct Request {
+typedef struct Request {
   int cmd;
   char user[MAXNAME];
   char buffer[BUFFER_TAM];
-};
+} REQUEST;
 
-struct File_package {
+typedef struct File_package {
   char name[MAXNAME];
   char extension[MAXNAME];
   int size;
   int package;
   char buffer[BUFFER_TAM];
-};
+} FILE_PACKAGE;
 
 #ifndef _DROPBOXUTIL_H_
 #define _DROPBOXUTIL_H_
@@ -164,7 +164,7 @@ int parseCommand(char cmd[]);
 int parseFile(struct File_package* file);
 
 
-void delete_info_file(CLIENT* actualClient, char* namefile);
+void delete_info_file(CLIENT* client, char* namefile);
 /**
  * Create a new file. This function is called when the user wants to upload
  * some file.

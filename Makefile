@@ -13,8 +13,8 @@ dropboxClient.o: dropboxClient.c dropboxUtil.c
 dropboxUtil.o: dropboxUtil.c
 	gcc -c dropboxUtil.c
 
-teste: teste.c
-	gcc -o teste teste.c
+teste_delete: teste_delete.c
+	gcc -o teste_delete teste_delete.c
 
 clean:
 	rm dropboxClient dropboxServer teste *.o

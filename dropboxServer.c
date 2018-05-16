@@ -136,20 +136,19 @@ void delete_file_request(char * user, char * file){
 
 	CLIENT* client = find_or_createClient(user);
 
-	//path = MAXNAME + "./home/sync_dir_" => 273
-	char path[273];
-	strcpy(path, serverDir);
-	strcpy(path, client->userid);
+	char path[MAXNAME + sizeof(serverDir)];
+	strcat(path, serverDir);
+	strcat(path, client->userid);
 	strcat(path, "/");
 	strcat(path, file);
 
-	// struct FILE_INFO file_info;
-
-	if(remove(path) != 0){
-	  printf("Error: unable to delete the %s file\n", file);
+	int status = remove(path);
+	if(status == 0){ //remove file cliente side
+		delete_info_file(client, file);
+		printf("File ( %s ) deleted sucessfully!\n", file);
 	}
 	else{
-		delete_info_file(client, file);
+		printf("Error: unable to delete the %s file\n", file);
 	}
 }
 

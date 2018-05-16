@@ -197,10 +197,9 @@ void get_file(char *file){
 
 void delete_file(char *file){
 
-	//path = MAXNAME + "./tmp/sync_dir_" => 273
-	char path[272];
-	strcpy(path, homeDir);
-	strcpy(path, cli->userid);
+	char path[MAXNAME + sizeof(homeDir)];
+	strcat(path, homeDir);
+	strcat(path, cli->userid);
 	strcat(path, "/");
 	strcat(path, file);
 
@@ -220,13 +219,14 @@ void delete_file(char *file){
 		return;
 	}
 	else{
-		//TO DO parse path local (?)
-		if(remove(path) != 0) //remove file cliente side
-			printf("Error: unable to delete the %s file\n", file);
-		else{
 
+		int status = remove(path);
+		if(status == 0){ //remove file cliente side
 			delete_info_file(cli, file);
 			printf("File ( %s ) deleted sucessfully!\n", file);
+		}
+		else{
+			printf("Error: unable to delete the %s file\n", file);
 		}
 	}
 

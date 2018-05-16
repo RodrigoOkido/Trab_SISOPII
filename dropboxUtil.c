@@ -148,32 +148,34 @@ int parseFile(struct File_package* file){
     return 0;
 }
 
-void delete_info_file(CLIENT* actualClient, char* namefile){
+void delete_info_file(CLIENT* client, char* namefile){
   //atualiza quantidade de arquivos
-  actualClient->files_qty = actualClient->files_qty - 1;
+  client->files_qty = client->files_qty - 1;
+
+  char arquivo[MAXNAME+EXT+1];
 
   int i;
   //percorre array de arquivos para fazer match do nome
   for (i = 0; i < MAXFILES ; i++){
-    if (strncmp(actualClient->file_info[i].name, namefile, sizeof(namefile)) == 0) {
+
+    //concat name + . + ext => name.ext 
+    strcat(arquivo, client->file_info[i].name);
+    strcat(arquivo, ".");
+    strcat(arquivo, client->file_info[i].extension);
+
+
+    if (strncmp(arquivo, namefile, sizeof(namefile)) == 0) {
 
       if(DEBUG) {
-        fprintf(stderr,"CLIENT INDEX: %i",i);
-      }
+        fprintf(stderr,"CLIENT INDEX: %i \n",i);
+      }      
 
-      //zera file_info (like createNewfile)
-      strncpy(actualClient->file_info[i].name, filename, MAXNAME-1);
-      actualClient->file_info[i].name[MAXNAME-1] = '\0';
-
-      strncpy(actualClient->file_info[i].extension, extension, EXT);
-      actualClient->file_info[i].extension[EXT] = '\0';
-
-      strncpy(actualClient->file_info[i].last_modified, "", sizeof(DATE));
-      actualClient->file_info[i].last_modified[DATE] = '\0';
-
-      //convenção para  elemento do array livre
-      actualClient->file_info[i].size = -1;
+      memset(client->file_info[i].name, 0, MAXNAME);
+      memset(client->file_info[i].extension, 0, EXT);
+      memset(client->file_info[i].last_modified, 0, DATE);
+      client->file_info[i].size = -1;
     }
+    memset(arquivo, 0, sizeof(arquivo)); //limpa string
   }
 }
 

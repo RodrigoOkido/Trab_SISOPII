@@ -60,8 +60,6 @@ typedef struct file_info	{
 	int	size;
 } FILE_INFO;
 
-
-
 /**
   int devices[2] – associado aos dispositivos do usuário
   userid[MAXNAME] – id do usuário no servidor, que deverá ser
@@ -159,24 +157,22 @@ void insert_files(){
 
 }
 
-
 void delete_file(char *file){
 
 	//path = MAXNAME + "./tmp/sync_dir_" => 273
 	char path[MAXNAME + sizeof(homeDir)];
-	strcpy(path, homeDir);
-	strcpy(path, localClient->userid);
+	strcat(path, homeDir);
+	strcat(path, localClient->userid);
 	strcat(path, "/");
 	strcat(path, file);
 
+	int status = remove(path);	
+	if(DEBUG) printf("\n sizeof: %i \t path: %s \t status: %i \n",(int) sizeof(path), path, status);
 
-	int status = remove(path);
-	printf("\n path: %s \t status: %i \n", path, status);
-
-	//TO DO parse path local (?)
-	if(status == 0) //remove file cliente side
+	if(status == 0){ //remove file cliente side
 		delete_info_file(localClient, file);
 		printf("File ( %s ) deleted sucessfully!\n", file);
+	}
 	else{
 		printf("Error: unable to delete the %s file\n", file);
 	}
@@ -198,18 +194,22 @@ void delete_info_file(CLIENT* client, char* namefile){
   //atualiza quantidade de arquivos
   client->files_qty = client->files_qty - 1;
 
-  // char * deletedFile =  strtok(namefile, ".");
-
-  // printf("\n %s \n", deletedFile); 
+  char arquivo[MAXNAME+EXT+1];
 
   int i;
   //percorre array de arquivos para fazer match do nome
   for (i = 0; i < MAXFILES ; i++){
 
-    if (strncmp(client->file_info[i].name, namefile, sizeof(namefile)) == 0) {
+  	//concat name + . + ext => name.ext 
+  	strcat(arquivo, client->file_info[i].name);
+  	strcat(arquivo, ".");
+  	strcat(arquivo, client->file_info[i].extension);
+
+
+    if (strncmp(arquivo, namefile, sizeof(namefile)) == 0) {
 
       if(DEBUG) {
-        fprintf(stderr,"CLIENT INDEX: %i",i);
+        fprintf(stderr,"CLIENT INDEX: %i \n",i);
       }      
 
       memset(client->file_info[i].name, 0, MAXNAME);
@@ -217,6 +217,7 @@ void delete_info_file(CLIENT* client, char* namefile){
       memset(client->file_info[i].last_modified, 0, DATE);
       client->file_info[i].size = -1;
     }
+    memset(arquivo, 0, sizeof(arquivo)); //limpa string
   }
 }
 
@@ -251,8 +252,8 @@ int main(int argc, char const *argv[])
 	list_dir(LIST_SERVER);
 	printf(" \t ----- \n \n");
 
-	// delete_file("teste2.txt");
-	delete_info_file(localClient, "teste2");
+	delete_file("teste2.txt");
+	// delete_info_file(localClient, "teste2");
 
 	printf(" \t ----- \n \n");
 	list_dir(LIST_CLIENT);
