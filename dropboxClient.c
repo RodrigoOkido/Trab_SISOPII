@@ -115,7 +115,7 @@ void *sync_client(void *arg) {
 
 void send_file(char *file){
 
-	FILE *sendFile = fopen(file, "rb");
+	FILE *sendFile = fopen(file, "r");
 	int packet, read_buffer; //packet - Counter of packets needed to send the file.
 													 //read_buffer - buffer which will receive the content of the file.
 	// Verifica se existe o arquivo
@@ -132,32 +132,55 @@ void send_file(char *file){
 	struct Request *request = (struct Request*)malloc(sizeof(struct Request));
 	request->cmd = UPLOAD;
 	strcpy(request->user, cli->userid);
-	n = sendto(sockfd, request, sizeof(struct Request), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr));
+
+	if(DEBUG) fprintf(stderr, "- Enviando comando UPLOAD\n");
+	n = sendto(sockfd, request, sizeof(struct Request), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	if(n < 0) fprintf(stderr, "[ERROR]\n");
 
 	//RECEIVE THE ACK FOR THE COMMAND
-	n = recvfrom(sockfd,  request, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &from, &length);
+	if(DEBUG) fprintf(stderr, "- Aguardando ACK do comando\n");
+	n = recvfrom(sockfd,  request, sizeof(struct Request), 0, (struct sockaddr *) &from, &length);
+	if(n < 0) fprintf(stderr, "[ERROR]\n");
 	if(request->cmd != ACK){
 		fprintf(stderr, "[ERROR] It was not possible execute the command in server\n" );
 		return;
 	}
 
-	//SEND STRUCT FILE WITH (NAME, EXTENSION, FILE_SIZE, PACKAGE NUM, first BUFFER)
 	struct File_package *fileSend = (struct File_package*)malloc(sizeof(struct File_package));
 	strcpy(fileSend->name, file);
 	parseFile(fileSend); 		//Parse the filename and file extension to do the struct (check dropboxUtil.c for this function)
 	fileSend->size = file_length;
-	fileSend->package = 1;
-	
-	while(!feof(sendFile)) {
+	fileSend->package = 0;
+
+	//SEND STRUCT FILE WITH INFORMATION
+	if(DEBUG) fprintf(stderr, "- Enviando pacote de informações\n");
+	n = sendto(sockfd, fileSend, sizeof(struct File_package), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	if(n < 0) fprintf(stderr, "[ERROR]\n");
+
+	//RECEIVE THE ACK FOR THE COMMAND
+	if(DEBUG) fprintf(stderr, "- Aguardadno ACK do pacote de informações\n");
+	n = recvfrom(sockfd,  request, sizeof(struct Request), 0, (struct sockaddr *) &from, &length);
+	if(n < 0) fprintf(stderr, "[ERROR]\n");
+	if(request->cmd != ACK){
+		fprintf(stderr, "[ERROR] in receive ACK\n" );
+		return;
+	}
+
+	while(!feof(sendFile) && file_length > 0) {
+
+		fileSend->package++;
+
+		//Zero out our send buffer
+		bzero(fileSend->buffer, sizeof(fileSend->buffer));
 
 		int s = fread(fileSend->buffer, sizeof(char), sizeof(fileSend->buffer)-1, sendFile);
 
 		//Send data through our socket
 		do {
-			n = sendto(sockfd, fileSend, sizeof(struct File_package), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr));
+			if(DEBUG) fprintf(stderr, "- Enviado pacote do arquivo\n");
+			n = sendto(sockfd, fileSend, sizeof(struct File_package), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 			if(n<0) printf("[ERROR] in package %d\n", fileSend->package);
 		} while(n < 0);
-
 
 		if(DEBUG){
 			printf("\n");
@@ -166,25 +189,22 @@ void send_file(char *file){
 			printf("\n");
 		}
 
-		fileSend->package++;
-
-		//Zero out our send buffer
-		bzero(fileSend->buffer, sizeof(fileSend->buffer));
-
+		if(DEBUG) fprintf(stderr, "- Aguardando ACK do pacote do arquivo\n");
+		//RECEIVE THE ACK FOR THE PACKAGE
+		n = recvfrom(sockfd,  request, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &from, &length);
+		if(request->cmd != ACK){
+			fprintf(stderr, "[ERROR] ACK\n" );
+			return;
+		}
 	}
 
-	// Ansew with ack
-	struct Request *answer = (struct Request*)malloc(sizeof(struct Request));
-	answer->cmd = ACK;
-	n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr));
-	if (n < 0)
-		printf("ERROR recvfrom\n");
 
 	printf("File ( %s ) uploaded sucessfully!\n", fileSend->name);
 	file_length = 0;
 
 	fclose(sendFile);
 
+	if(DEBUG) fprintf(stderr, "=== FIM UPLOAD ===\n");
 }
 
 
