@@ -17,4 +17,4 @@ teste_delete: teste_delete.c
 	gcc -o teste_delete teste_delete.c
 
 clean:
-	rm dropboxClient dropboxServer teste *.o
+	rm dropboxClient dropboxServer teste_delete *.o

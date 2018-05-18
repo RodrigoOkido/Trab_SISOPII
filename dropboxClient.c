@@ -218,6 +218,8 @@ void get_file(char *file){
 void delete_file(char *file){
 
 	char path[MAXNAME + sizeof(homeDir)];
+	memset(path, 0, sizeof(path));
+	
 	strcat(path, homeDir);
 	strcat(path, cli->userid);
 	strcat(path, "/");
@@ -229,7 +231,7 @@ void delete_file(char *file){
 	strcpy(request->user, cli->userid);
 
 	strcpy(request->buffer, file);
-	request->buffer[sizeof(file)] = '\0';
+	// request->buffer[sizeof(file)] = '\0';
 
 	n = sendto(sockfd, request, sizeof(struct Request), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr));
 	//RECEIVE THE ACK FOR THE COMMAND
@@ -239,8 +241,8 @@ void delete_file(char *file){
 		return;
 	}
 	else{
-
 		int status = remove(path);
+		if(DEBUG) printf("\n sizeof: %i \t path: %s \t status: %i \n",(int) sizeof(path), path, status);
 		if(status == 0){ //remove file cliente side
 			delete_info_file(cli, file);
 			printf("File ( %s ) deleted sucessfully!\n", file);

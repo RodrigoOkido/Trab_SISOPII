@@ -140,12 +140,15 @@ void delete_file_request(char * user, char * file){
 	CLIENT* client = find_or_createClient(user);
 
 	char path[MAXNAME + sizeof(serverDir)];
+	memset(path, 0, sizeof(path));
+
 	strcat(path, serverDir);
 	strcat(path, client->userid);
 	strcat(path, "/");
 	strcat(path, file);
 
 	int status = remove(path);
+	if(DEBUG) printf("\n sizeof: %i \t path: %s_ \t status: %i \t file: %s_ \n",(int) sizeof(path), path, status, file);
 	if(status == 0){ //remove file cliente side
 		delete_info_file(client, file);
 		printf("File ( %s ) deleted sucessfully!\n", file);
