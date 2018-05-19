@@ -236,6 +236,10 @@ int main(int argc, char *argv[])
 					delete_file_request(request->user, request->buffer);
 					break;
 			case LIST_SERVER:
+					actualClient = find_or_createClient(request->user);
+					if(DEBUG) show_files(actualClient, 1);
+
+					// TO DO size of struct CLIENT  MAIOR QUE BUFFER sendto 
 					memcpy(answer->buffer, &actualClient, sizeof(actualClient));
 					answer->buffer[sizeof(actualClient)] = '\0';
 					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));

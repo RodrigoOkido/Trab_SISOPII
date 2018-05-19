@@ -45,6 +45,9 @@ void iniciateList(){
 CLIENT* create_and_setClient(char* user_id) {
 
     CLIENT* newClient = malloc(sizeof(CLIENT)); //Create new client
+    FILE_PACKAGE *fileReceive = (FILE_PACKAGE*)malloc(sizeof(FILE_PACKAGE));
+    FILE *readFile;
+    int count;
 
     //Inicialization of this new Client.
     newClient->devices[0]= 0;
@@ -54,8 +57,76 @@ CLIENT* create_and_setClient(char* user_id) {
     memcpy( id, &user_id[0], sizeof(user_id));
     strncpy(newClient->userid , id , sizeof(id));
     newClient->userid[UNIQUE_ID] = '\0';
-    newClient->files_qty = 0;
     newClient->logged_in = 0;
+
+
+    char path[MAXNAME + sizeof(serverDir)]; //folder
+    char aux[MAXNAME + sizeof(serverDir) + EXT + 1]; //file
+    memset(path, 0, sizeof(path));
+
+    strcat(path, serverDir);
+    strcat(path,user_id);
+    strcat(path, "/");
+
+    DIR* clientDir = opendir(path);
+    struct dirent *ent;
+
+    if(clientDir){
+      //existe diretório do cliente no servidor
+      if(DEBUG) printf("exists directory  %s \n", path);
+
+      /* print all the files and directories within directory */
+      while ((ent = readdir (clientDir)) != NULL) {
+
+        if ((strncmp(ent->d_name, ".", sizeof(".")) == 0) || (strncmp(ent->d_name, "..", sizeof("..")) == 0)){
+          if(DEBUG) printf (" pula %s\n", ent->d_name);
+        }
+        else{
+          if(count <= MAXFILES){ // Lê arquivos até o limite maximo de arquivos
+            if(DEBUG) printf ("%s\n", ent->d_name);
+
+            /* Leitura de arquivos da pasta */
+            strcpy(fileReceive->name, ent->d_name); //concatena nome do arquivo
+            parseFile(fileReceive); //parse para file_info
+
+            //concat path + file para leitura
+            memset(aux, 0, sizeof(aux));
+            strcat(aux, path);
+            strcat(aux, "/");
+            strcat(aux, ent->d_name);
+
+            readFile = fopen(aux,"r"); //abre o arquivo para leitura
+
+            fseek(readFile, 0, SEEK_END); //Seek the pointer to the end of the file to check the last byte number.
+            file_length = ftell(readFile); //Store the file length of the received file.
+            fseek(readFile, 0, SEEK_SET); //Turn the pointer to the beginning.
+
+            fclose(readFile); // fecha o arquivo
+
+            fileReceive->size = file_length; //copy size to struct
+            fileReceive->package = 0; //set package to zero
+
+            createNewFile(newClient, fileReceive); //cria o file_info e adiciona na struct cliente
+
+            //TODO sync OR get_file => local folder 
+            count++;
+          }
+
+        }
+
+      }
+      closedir (clientDir);
+    } 
+    else{
+      //não existe diretório do cliente no servidor
+
+      //TODO permissão /home
+      int i = mkdir(path, 0777);
+      if(i == -1) printf("[ERROR] create directory  %s \n", path); //Pasta já existe
+      if(i != 0) printf("[ERROR] create directory  %s \n", path); // ERRO no mkdir
+      newClient->files_qty = 0;
+    }
+
 
     //Put the new Client in the list of clients
     client_list[total_client] = *newClient;
@@ -65,6 +136,7 @@ CLIENT* create_and_setClient(char* user_id) {
     return &client_list[total_client];
     total_client++; //Increment the total of the Clients after created.
 }
+
 
 CLIENT* find_or_createClient(char* userid) {
 
@@ -258,4 +330,6 @@ void show_files(CLIENT * client, int isServer){
       printf("%i - \t name : %s \t extension: %s \t last_modified: %s \t size: %i \n", j, client->file_info[i].name, client->file_info[i].extension, client->file_info[i].last_modified, client->file_info[i].size);
     }
   }
+
+  if(j == 0) printf("\t no files in struct \n \n"); 
 }

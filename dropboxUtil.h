@@ -17,6 +17,7 @@
 #include <sys/inotify.h>
 #include <arpa/inet.h>
 #include <time.h>
+#include <dirent.h>
 
 #define PORT 		4000
 #define BUFFER_TAM 	256
@@ -50,7 +51,7 @@ extern int mkdir();
 
 // Local & Remote Diretory
 static const char homeDir[] = "/tmp/sync_dir_";
-static const char serverDir[] = "/home/sync_dir_";
+static const char serverDir[] = "/tmp/SERVER/sync_dir_";
 
 /**
   name[MAXNAME] refere-se ao nome do arquivo.
@@ -92,7 +93,7 @@ typedef struct Request {
 } REQUEST;
 
 typedef struct File_package {
-  char name[MAXNAME];
+  char name[MAXNAME+EXT+1];
   char extension[MAXNAME];
   int size;
   int package;

@@ -402,6 +402,10 @@ void command_get_func()
 	while(start){
 
 		showMenu(cli);
+		if(DEBUG){
+			printf("\t userid : %s \t qnt: %i \n", cli->userid, cli->files_qty);
+			show_files(cli, 0);
+		}
 		printf("cmd > ");
 		fgets(user_cmd, sizeof(user_cmd), stdin);
 		user_cmd[strlen(user_cmd) -1] = '\0';
@@ -492,8 +496,7 @@ int main(int argc, char *argv[]){
 		n = recvfrom(sockfd,  request, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &from, &length);
 		if(request->cmd != ACK) 
 			fprintf(stderr, "[ERROR] It was not possible connect to this server\n" );
-		else{
-
+		else{			
 			//cria diretório local
 			int dir = get_sync_dir(argv[1]);
 			if(dir == 0) // == 0 Diretório já existe, pode ser sincronizado
