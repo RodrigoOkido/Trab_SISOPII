@@ -480,7 +480,7 @@ int main(int argc, char *argv[]){
 		exit(0);
 	}
 
-	cli = find_or_createClient(argv[1]);
+	cli = create_and_setClient(argv[1], 0);
 
 	int login = login_server(argv[2], PORT);
 

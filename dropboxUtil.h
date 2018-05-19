@@ -128,7 +128,7 @@ void iniciateList();
 /**
 	Create a client and set his session configs. Called only if userID is new.
 */
-CLIENT* create_and_setClient(char* user_id);
+CLIENT* create_and_setClient(char* user_id, int isServer);
 
 
 

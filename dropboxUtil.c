@@ -42,7 +42,7 @@ void iniciateList(){
     client_list = malloc(MAXCLIENTS * sizeof(CLIENT));
 }
 
-CLIENT* create_and_setClient(char* user_id) {
+CLIENT* create_and_setClient(char* user_id, int isServer) {
 
     CLIENT* newClient = malloc(sizeof(CLIENT)); //Create new client
     FILE_PACKAGE *fileReceive = (FILE_PACKAGE*)malloc(sizeof(FILE_PACKAGE));
@@ -127,14 +127,20 @@ CLIENT* create_and_setClient(char* user_id) {
       newClient->files_qty = 0;
     }
 
+    if(isServer){
+      //Put the new Client in the list of clients
+      client_list[total_client] = *newClient;
 
-    //Put the new Client in the list of clients
-    client_list[total_client] = *newClient;
+      //Set actual Client for this one. The actual indicates the current
+      //user logged in Dropbox.
+      return &client_list[total_client];
+      total_client++; //Increment the total of the Clients after created.
+    }
+    else{
+      return newClient;
+    }
 
-    //Set actual Client for this one. The actual indicates the current
-    //user logged in Dropbox.
-    return &client_list[total_client];
-    total_client++; //Increment the total of the Clients after created.
+    
 }
 
 
@@ -160,7 +166,7 @@ CLIENT* find_or_createClient(char* userid) {
       fprintf(stderr, "Unable to create more clients\n");
       return NULL;
     } else {
-        return create_and_setClient(userid);
+        return create_and_setClient(userid, 1);
     }
 }
 
