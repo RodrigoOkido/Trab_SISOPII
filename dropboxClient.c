@@ -210,30 +210,13 @@ void send_file(char *file){
 
 
 
-void get_file(char *file){
-
-	int file_size;
+void get_file(char *file)
+	{
 	struct File_package *fileReceive = (struct File_package*)malloc(sizeof(struct File_package));
 	strcpy(fileReceive->name, file);
 	parseFile(fileReceive);
 
 	fprintf(stderr, "- %s %s\n", fileReceive->name, fileReceive->extension);
-
-	int i;
-	int indexFile = -1;
-	for(i = 0; i < MAXFILES ; i++){
-		fprintf(stderr, "- %s %s\n", cli->file_info[i].name, fileReceive->name);
-		if(strcmp(cli->file_info[i].name, fileReceive->name) == 0){
-			if(strcmp(cli->file_info[i].extension, fileReceive->extension) == 0){
-				indexFile = i;
-				file_size = fileReceive->size;
-			}
-		}
-	}
-
-	if (indexFile == -1){
-		return;
-	}
 
 	// Envia o comando para o servidor, para iniciar o download
 	struct Request *request = (struct Request*)malloc(sizeof(struct Request));
@@ -253,11 +236,24 @@ void get_file(char *file){
 		return;
 	}
 
+	if(DEBUG) fprintf(stderr, "- Enviando nome do arquivo\n");
+	n = sendto(sockfd, fileReceive, sizeof(struct File_package), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+
+	if(DEBUG) fprintf(stderr, "- Aguardando o pacote de informações\n");
+	n = recvfrom(sockfd, fileReceive, sizeof(struct File_package), 0, (struct sockaddr *) &from, &length);
+	if(n < 0) fprintf(stderr, "[ERROR]\n");
+	if(fileReceive->size == -1){
+		fprintf(stderr, "[ERROR] Arquivo não existe no servidor\n" );
+		return;
+	}
+
 	createNewFile(cli, fileReceive);
 
-	//Depois necessita colocar numa pasta para o userid
-	char* file_complete = malloc(strlen(fileReceive->name)+EXT+1); /* create space for the file */
-	strcpy(file_complete, fileReceive->name); /* copy filename into the new var */
+	char* file_complete = malloc(strlen(serverDir) + strlen(fileReceive->name)+EXT+1); /* create space for the file */
+	strcpy(file_complete, homeDir); /* copy filename into the new var */
+	strcat(file_complete, cli->userid); /* copy filename into the new var */
+	strcat(file_complete, "/"); /* copy filename into the new var */
+	strcat(file_complete, fileReceive->name); /* copy filename into the new var */
 	strcat(file_complete, "."); /* copy filename into the new var */
 	strcat(file_complete, fileReceive->extension); /* concatenate extension */
 
@@ -265,10 +261,16 @@ void get_file(char *file){
 	fprintf(stderr,"%s\n",folder);
 
 	FILE *receiveFile = fopen(folder, "w");
+	if(receiveFile == NULL){
+		fprintf(stderr, "[ERROR] Ao abrir o arquivo\n");
+		return;
+	}
 	int bytesRead = 0;
+	int file_size = fileReceive->size;
 
-
-	n = sendto(sockfd, fileReceive, sizeof(struct File_package), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	if(DEBUG) fprintf(stderr, "- Respondendo com ACK pacote de informações\n");
+	n = sendto(sockfd, request, sizeof(struct Request), MSG_CONFIRM,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	if(n < 0) fprintf(stderr, "[ERROR]\n");
 
 	while (bytesRead < file_size){
 
@@ -289,19 +291,13 @@ void get_file(char *file){
 		bzero(fileReceive->buffer, sizeof(fileReceive->buffer));
 		// Pacote recebido
 		if(DEBUG) fprintf(stderr, "- Respondendo com ACK pacote do arquivo\n");
-		n = sendto(sockfd, request, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &serv_addr, sizeof(struct sockaddr));
+		n = sendto(sockfd, request, sizeof(struct Request), MSG_CONFIRM,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 		if(n < 0) fprintf(stderr, "[ERROR]\n");
 	}
 
-
-
-
 	fclose(receiveFile);
 
-
-
 	if(DEBUG) fprintf(stderr, "=== FIM DOWNLOAD ===\n");
-
 }
 
 void delete_file(char *file){
