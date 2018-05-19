@@ -64,6 +64,10 @@ void *sync_client(void *arg) {
 	char path[MAXNAME + sizeof(homeDir)];
 	memset(path, 0, sizeof(path));
 
+	strcat(path, homeDir);
+	strcat(path, cli->userid);
+	strcat(path, "/");
+	
 	while (1) { //fica verificando se alterou o diretorio
 		length = read(notifyStart, buffer, EVENT_BUF_LEN);
 		fprintf(stderr,"[sync_client]\n");
@@ -79,8 +83,7 @@ void *sync_client(void *arg) {
 		if ( event->len ) {
 			if ( event->mask & IN_CREATE || event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO) {
 
-				strcat(path, directory); //global var ?
-				strcat(path, "/");
+				
 				strcat(path, event->name);
 				if( (fopen(path, "r")) == NULL ) {
 
@@ -93,9 +96,6 @@ void *sync_client(void *arg) {
 			}
 
 			else if ( event->mask & IN_DELETE  || event->mask & IN_MOVED_FROM) {
-
-				strcat(path, directory);
-				strcat(path, "/");
 				strcat(path, event->name);
 				delete_file (path);
 				printf( "File %s deleted.\n", event->name );
@@ -111,7 +111,6 @@ void *sync_client(void *arg) {
 	}
 
 }
-
 
 
 void send_file(char *file){
