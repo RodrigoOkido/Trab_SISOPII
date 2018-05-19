@@ -223,10 +223,10 @@ int createNewFile(CLIENT* actualClient, struct File_package* file){
 
 
 int get_sync_dir(char* userId){
-    //aux = MAXNAME + "./home/sync_dir_" => 272
-    char aux[272];
+    char aux[MAXNAME + sizeof(homeDir)];
+    memset(aux, 0, sizeof(aux));
 
-    strcpy(aux,homeDir);
+    strcat(aux,homeDir);
     strcat(aux, userId);
 
     //cria o diretório com permissão de leitura/escrita/execução

@@ -61,7 +61,8 @@ void *sync_client(void *arg) {
 
 	int length, i = 0;
 	char buffer[EVENT_BUF_LEN];
-	char path[200];
+	char path[MAXNAME + sizeof(homeDir)];
+	memset(path, 0, sizeof(path));
 
 	while (1) { //fica verificando se alterou o diretorio
 		length = read(notifyStart, buffer, EVENT_BUF_LEN);
@@ -78,7 +79,7 @@ void *sync_client(void *arg) {
 		if ( event->len ) {
 			if ( event->mask & IN_CREATE || event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO) {
 
-				strcpy(path, directory);
+				strcat(path, directory); //global var ?
 				strcat(path, "/");
 				strcat(path, event->name);
 				if( (fopen(path, "r")) == NULL ) {
@@ -93,7 +94,7 @@ void *sync_client(void *arg) {
 
 			else if ( event->mask & IN_DELETE  || event->mask & IN_MOVED_FROM) {
 
-				strcpy(path, directory);
+				strcat(path, directory);
 				strcat(path, "/");
 				strcat(path, event->name);
 				delete_file (path);
@@ -481,11 +482,6 @@ int main(int argc, char *argv[]){
 
 	if(login)
 	{
-		int dir = get_sync_dir(argv[1]);
-		if(dir == 0) // == 0 Diretório já existe, pode ser sincronizado
-		 //sync_client(); //Sync client files with the server
-		if(dir == -2) exit(dir);
-
 		struct Request *request = (struct Request*)malloc(sizeof(struct Request));
 		request->cmd = CONNECT;
 		strcpy(request->user, cli->userid);
@@ -494,17 +490,26 @@ int main(int argc, char *argv[]){
 		n = sendto(sockfd, request, sizeof(struct Request), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 		//RECEIVE THE ANSWER FROM THE SERVER
 		n = recvfrom(sockfd,  request, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &from, &length);
-		if(request->cmd != ACK) fprintf(stderr, "[ERROR] It was not possible connect to this server\n" );
+		if(request->cmd != ACK) 
+			fprintf(stderr, "[ERROR] It was not possible connect to this server\n" );
+		else{
 
-		// Cria a thred de sincronização do diretório
-		pthread_t sync_thread;
+			//cria diretório local
+			int dir = get_sync_dir(argv[1]);
+			if(dir == 0) // == 0 Diretório já existe, pode ser sincronizado
+			 //sync_client(); //Sync client files with the server
+			if(dir == -2) exit(dir);
 
-		//int rc = pthread_create(&sync_thread, NULL, sync_client, NULL);
-		//if(rc)
-		//	fprintf(stderr,"A request could not be processed\n");
+			// Cria a thred de sincronização do diretório
+			pthread_t sync_thread;
 
-		//LOOP para pegar o comando do client
-		command_get_func();
+			//int rc = pthread_create(&sync_thread, NULL, sync_client, NULL);
+			//if(rc)
+			//	fprintf(stderr,"A request could not be processed\n");
+
+			//LOOP para pegar o comando do client
+			command_get_func();
+		}		
 	}
 	return 0;
 }
