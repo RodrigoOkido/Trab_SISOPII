@@ -32,7 +32,7 @@ void sync_server(){
 }
 
 
-void receive_file() {
+void receive_file(char* userid) {
 
 	if(DEBUG) fprintf(stderr, "- Aguardando receber pacote de informações\n");
 	//Server aguardando receber o primeiro pacote de informações
@@ -43,8 +43,11 @@ void receive_file() {
 	createNewFile(actualClient, fileReceive);
 
 	//Depois necessita colocar numa pasta para o userid
-	char* file_complete = malloc(strlen("receiveFile")+EXT+1); /* create space for the file */
-	strcpy(file_complete, "receiveFile"); /* copy filename into the new var */
+	char* file_complete = malloc(strlen(serverDir) + strlen(fileReceive->name)+EXT+1); /* create space for the file */
+	strcpy(file_complete, serverDir); /* copy filename into the new var */
+	strcat(file_complete, userid); /* copy filename into the new var */
+	strcat(file_complete, "/"); /* copy filename into the new var */
+	strcat(file_complete, fileReceive->name); /* copy filename into the new var */
 	strcat(file_complete, "."); /* copy filename into the new var */
 	strcat(file_complete, fileReceive->extension); /* concatenate extension */
 
@@ -223,7 +226,7 @@ int main(int argc, char *argv[])
 			case UPLOAD:
 					if(DEBUG) fprintf(stderr, "- Respondendo o comando com ACK\n");
 					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
-					receive_file();
+					receive_file(request->user);
 					break;
 
 			case DOWNLOAD:
@@ -286,7 +289,7 @@ void *handle_request(void *req)
 		case UPLOAD:
 				if(DEBUG) fprintf(stderr, "- Respondendo o comando com ACK\n");
 				n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
-				receive_file();
+				receive_file(request->user);
 				break;
 
 		case DOWNLOAD: if(DEBUG) fprintf(stderr, "- Respondendo o comando com ACK\n");

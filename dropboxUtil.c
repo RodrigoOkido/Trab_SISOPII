@@ -205,11 +205,11 @@ int parseCommand (char cmd[]){
 
 int parseFile(struct File_package* file){
 
-    char *word = strtok(file->name," ");
+    char *word = strtok(file->name,"/");
     char auxFile[MAXNAME];
     while(word){
         strcpy(auxFile, word);
-        word = strtok(NULL, " ");
+        word = strtok(NULL, "/");
     }
 
     char *token = strtok(auxFile, ".");

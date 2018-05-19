@@ -18,7 +18,7 @@ void sync_server();
   Deverá ser executada quando for realizar upload de um arquivo.
   @param file – path/filename.ext do arquivo a ser recebido
 */
-void receive_file();
+void receive_file(char* userid);
 
 
 
