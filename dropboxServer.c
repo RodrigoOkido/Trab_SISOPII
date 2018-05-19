@@ -40,7 +40,9 @@ void receive_file(char* userid) {
 	n = recvfrom(sockfd, fileReceive, sizeof(struct File_package), 0, (struct sockaddr *) &cli_addr, &newClilen);
 	if(n < 0) fprintf(stderr, "[ERROR]\n");
 
-	createNewFile(actualClient, fileReceive);
+	CLIENT *client = find_or_createClient(userid);
+
+	createNewFile(client, fileReceive);
 
 	char* file_complete = malloc(strlen(serverDir) + strlen(fileReceive->name)+EXT+1); /* create space for the file */
 	strcpy(file_complete, serverDir); /* copy filename into the new var */
@@ -75,7 +77,7 @@ void receive_file(char* userid) {
 			printf("\n\nReceived packet from %s:%d\n", inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
 			printf("Packet Number: %i\n", fileReceive->package);
 			printf("Packet Size Sent: %i\n", (int) strlen(fileReceive->buffer));
-			printf("Received a datagram:\n%s\n", fileReceive->buffer);
+			//printf("Received a datagram:\n%s\n", fileReceive->buffer);
 		}
 
 		if(DEBUG) fprintf(stderr, "- Escrevendo buffer no arquivo\n");

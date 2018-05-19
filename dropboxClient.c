@@ -281,7 +281,7 @@ void get_file(char *file)
 			printf("\n\nReceived packet from %s:%d\n", inet_ntoa(serv_addr.sin_addr), ntohs(serv_addr.sin_port));
 			printf("Packet Number: %i\n", fileReceive->package);
 			printf("Packet Size Sent: %i\n", (int) strlen(fileReceive->buffer));
-			printf("Received a datagram:\n%s\n", fileReceive->buffer);
+			//printf("Received a datagram:\n%s\n", fileReceive->buffer);
 		}
 
 		if(DEBUG) fprintf(stderr, "- Escrevendo buffer no arquivo\n");
