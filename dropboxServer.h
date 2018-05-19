@@ -27,6 +27,6 @@ void receive_file();
   Deverá ser executada quando for realizar download de um arquivo.
   @param file – filename.ext
 */
-void send_file(char *file);
+void sendFile();
 
 void *handle_request();

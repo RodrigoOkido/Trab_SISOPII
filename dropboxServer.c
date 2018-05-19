@@ -39,7 +39,7 @@ void receive_file() {
 	struct File_package *fileReceive = (struct File_package*)malloc(sizeof(struct File_package));
 	n = recvfrom(sockfd, fileReceive, sizeof(struct File_package), 0, (struct sockaddr *) &cli_addr, &newClilen);
 	if(n < 0) fprintf(stderr, "[ERROR]\n");
-	
+
 	createNewFile(actualClient, fileReceive);
 
 	//Depois necessita colocar numa pasta para o userid
@@ -68,7 +68,7 @@ void receive_file() {
 		if(DEBUG) fprintf(stderr, "- Aguardando pacote do arquivo\n");
 		n = recvfrom(sockfd, fileReceive, sizeof(struct File_package), 0, (struct sockaddr *) &cli_addr, &newClilen);
 		if(n < 0) fprintf(stderr, "[ERROR]\n");
-		
+
 		if(DEBUG){
 			printf("\n\nReceived packet from %s:%d\n", inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
 			printf("Packet Number: %i\n", fileReceive->package);
@@ -93,64 +93,90 @@ void receive_file() {
 }
 
 
-void send_file(char *file){
+void sendFile(){
 
-  	
-	int fileSize;
-	char path[273];
-	strcpy(path, serverDir);
-	strcpy(path, actualClient->userid);
-	strcat(path, "/");
-	strcat(path, file);
+	//Receive the download request
+	struct Request *answer = (struct Request*)malloc(sizeof(struct Request));
+	answer->cmd = ACK;
 
-	int bytes = 0;
-	
-	FILE *sendFile;
+	struct File_package *fileSend = (struct File_package*)malloc(sizeof(struct File_package));
+	n = recvfrom(sockfd, fileSend, sizeof(struct File_package), 0, (struct sockaddr *) &cli_addr, &newClilen);
 
-	if (sendFile = fopen(path, "rb")) {
+	//Depois necessita colocar numa pasta para o userid
+	char* file = malloc(strlen(fileSend->name)+EXT+1); /* create space for the file */
+	strcpy(file, fileSend->name); /* copy filename into the new var */
+	strcat(file, "."); /* copy filename into the new var */
+	strcat(file, fileSend->extension); /* concatenate extension */
 
-		fseek(sendFile, 0L, SEEK_END);
-		fileSize = ftell(sendFile);
+	FILE *sendFile = fopen(file, "r");
+	int packet, read_buffer; //packet - Counter of packets needed to send the file.
+													 //read_buffer - buffer which will receive the content of the file.
 
-		rewind(sendFile);
+	fseek(sendFile, 0, SEEK_END); //Seek the pointer to the end of the file to check the last byte number.
+	int file_length = ftell(sendFile); //Store the file length of the received file.
+	fseek(sendFile, 0, SEEK_SET); //Turn the pointer to the beginning.
 
-		bytes = sendto(sockfd, &fileSize, sizeof(int), 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 
-		while (!feof(sendFile)) {
+	int file_size = fileSend->size;
 
-		
-			fread(buf, BUFFER_TAM,1, sendFile);
+	while(!feof(sendFile) && file_length > 0) {
 
-			bytes = sendto(sockfd, buf, BUFFER_TAM, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
-			if (bytes < 0) {
-				printf("Error sending file");
-			}
+		fileSend->package++;
+
+		//Zero out our send buffer
+		bzero(fileSend->buffer, sizeof(fileSend->buffer));
+
+		int s = fread(fileSend->buffer, sizeof(char), sizeof(fileSend->buffer)-1, sendFile);
+
+		//Send data through our socket
+		do {
+			if(DEBUG) fprintf(stderr, "- Enviado pacote do arquivo\n");
+			n = sendto(sockfd, fileSend, sizeof(struct File_package), 0,(const struct sockaddr *) &cli_addr, sizeof(struct sockaddr_in));
+			if(n<0) printf("[ERROR] in package %d\n", fileSend->package);
+		} while(n < 0);
+
+		if(DEBUG){
+			printf("\n");
+			printf("Packet Number: %i\n", fileSend->package);
+			printf("Packet Size Sent: %i\n",s);
+			printf("\n");
 		}
-		fclose(sendFile);
-	} else { // arquivo nao existe
-	
-		fileSize = -1;
-		bytes = sendto(sockfd, &fileSize, sizeof(int), 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+
+		if(DEBUG) fprintf(stderr, "- Aguardando ACK do pacote do arquivo\n");
+		//RECEIVE THE ACK FOR THE PACKAGE
+		n = recvfrom(sockfd,  answer, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &cli_addr, &newClilen);
+		if(answer->cmd != ACK){
+			fprintf(stderr, "[ERROR] ACK\n" );
+			return;
+		}
 	}
- 
+
+	file_length = 0;
+
+	fclose(sendFile);
+
+
+
+	if(DEBUG) fprintf(stderr, "=== FIM DOWNLOAD ===\n");
+
 }
 
 void delete_file_request(char * user, char * file){
 
-	CLIENT* client = find_or_createClient(user);
+	//CLIENT* client = find_or_createClient(user);
 
 	char path[MAXNAME + sizeof(serverDir)];
 	memset(path, 0, sizeof(path));
 
 	strcat(path, serverDir);
-	strcat(path, client->userid);
+	strcat(path, actualClient->userid);
 	strcat(path, "/");
 	strcat(path, file);
 
 	int status = remove(path);
 	if(DEBUG) printf("\n sizeof: %i \t path: %s_ \t status: %i \t file: %s_ \n",(int) sizeof(path), path, status, file);
 	if(status == 0){ //remove file cliente side
-		delete_info_file(client, file);
+		delete_info_file(actualClient, file);
 		printf("File ( %s ) deleted sucessfully!\n", file);
 	}
 	else{
@@ -200,21 +226,28 @@ int main(int argc, char *argv[])
 					receive_file();
 					break;
 
-			case DOWNLOAD: break;
+			case DOWNLOAD:
+					if(DEBUG) fprintf(stderr, "- Respondendo o comando com ACK\n");
+					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+					sendFile();
+					break;
 			case DELETE:
 					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
-					delete_file_request(request->user, request->buffer); 
+					delete_file_request(request->user, request->buffer);
 					break;
-			case LIST_SERVER: 
+			case LIST_SERVER:
 					memcpy(answer->buffer, &actualClient, sizeof(actualClient));
 					answer->buffer[sizeof(actualClient)] = '\0';
-					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr)); 		
+					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 					break;
 			case LIST_CLIENT:
-					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr)); 
+					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 					break;
 			case GET_SYNC_DIR: break;
-			case EXIT: break;
+			case EXIT:
+					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+					fprintf(stderr,"User: %s disconnected!\n", actualClient->userid);
+			 		break;
 
 			case ERROR:
 			default: n = sendto(sockfd, "[SERVER] COMMAND ERROR!\n", 23, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
@@ -252,21 +285,24 @@ void *handle_request(void *req)
 				receive_file();
 				break;
 
-		case DOWNLOAD: break;
+		case DOWNLOAD: if(DEBUG) fprintf(stderr, "- Respondendo o comando com ACK\n");
+				n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+				sendFile();
+				break;
 		case DELETE:
 				n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
-				delete_file_request(request->user, request->buffer); 
+				delete_file_request(request->user, request->buffer);
 				break;
-		case LIST_SERVER: 
+		case LIST_SERVER:
 				memcpy(answer->buffer, &actualClient, sizeof(actualClient));
 				answer->buffer[sizeof(actualClient)] = '\0';
-				n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr)); 		
+				n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 				break;
 		case LIST_CLIENT:
-				n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr)); 
+				n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 				break;
 		case GET_SYNC_DIR: break;
-		case EXIT: break;
+		case EXIT: fprintf(stderr, "- Respondendo o comando com ACK\n");break;
 
 		case ERROR:
 		default: n = sendto(sockfd, "[SERVER] COMMAND ERROR!\n", 23, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));

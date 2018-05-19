@@ -29,7 +29,7 @@
 #define DATE 18
 #define MAXCLIENTS 150
 
-//parseCommands 
+//parseCommands
 #define UPLOAD  1
 #define DOWNLOAD  2
 #define DELETE  3
@@ -105,6 +105,7 @@ extern int file_length,total_client;
 extern CLIENT* client_list;
 
 #endif
+
 
 
 //const char homeDir[] = "./temp/sync_dir_"; //===> ALTERAR PARA /home/sync_dir_ <=======//

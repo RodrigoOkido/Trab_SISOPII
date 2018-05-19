@@ -62,7 +62,7 @@ void *sync_client(void *arg) {
 	int length, i = 0;
 	char buffer[EVENT_BUF_LEN];
 	char path[200];
-                     
+
 	while (1) { //fica verificando se alterou o diretorio
 		length = read(notifyStart, buffer, EVENT_BUF_LEN);
 		fprintf(stderr,"[sync_client]\n");
@@ -85,7 +85,7 @@ void *sync_client(void *arg) {
 
 				   printf("ERROR: File not found.\n");
 				}
-				else { 
+				else {
 					send_file(path);
 					// printf( "New file %s created.\n", event->name );
 				}
@@ -99,7 +99,7 @@ void *sync_client(void *arg) {
 				delete_file (path);
 				printf( "File %s deleted.\n", event->name );
 			}
-			
+
 		}
 
 		i += EVENT_SIZE + event->len;
@@ -211,7 +211,95 @@ void send_file(char *file){
 
 void get_file(char *file){
 
-  return;
+	int file_size;
+	struct File_package *fileReceive = (struct File_package*)malloc(sizeof(struct File_package));
+	strcpy(fileReceive->name, file);
+	parseFile(fileReceive);
+
+	fprintf(stderr, "- %s %s\n", fileReceive->name, fileReceive->extension);
+
+	int i;
+	int indexFile = -1;
+	for(i = 0; i < MAXFILES ; i++){
+		fprintf(stderr, "- %s %s\n", cli->file_info[i].name, fileReceive->name);
+		if(strcmp(cli->file_info[i].name, fileReceive->name) == 0){
+			if(strcmp(cli->file_info[i].extension, fileReceive->extension) == 0){
+				indexFile = i;
+				file_size = fileReceive->size;
+			}
+		}
+	}
+
+	if (indexFile == -1){
+		return;
+	}
+
+	// Envia o comando para o servidor, para iniciar o download
+	struct Request *request = (struct Request*)malloc(sizeof(struct Request));
+	request->cmd = DOWNLOAD;
+	strcpy(request->user, cli->userid);
+
+	if(DEBUG) fprintf(stderr, "- Enviando comando DOWNLOAD\n");
+	n = sendto(sockfd, request, sizeof(struct Request), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	if(n < 0) fprintf(stderr, "[ERROR]\n");
+
+	//RECEIVE THE ACK FOR THE COMMAND
+	if(DEBUG) fprintf(stderr, "- Aguardando ACK do comando\n");
+	n = recvfrom(sockfd,  request, sizeof(struct Request), 0, (struct sockaddr *) &from, &length);
+	if(n < 0) fprintf(stderr, "[ERROR]\n");
+	if(request->cmd != ACK){
+		fprintf(stderr, "[ERROR] It was not possible execute the command in server\n" );
+		return;
+	}
+
+	createNewFile(cli, fileReceive);
+
+	//Depois necessita colocar numa pasta para o userid
+	char* file_complete = malloc(strlen(fileReceive->name)+EXT+1); /* create space for the file */
+	strcpy(file_complete, fileReceive->name); /* copy filename into the new var */
+	strcat(file_complete, "."); /* copy filename into the new var */
+	strcat(file_complete, fileReceive->extension); /* concatenate extension */
+
+	char* folder = file_complete;
+	fprintf(stderr,"%s\n",folder);
+
+	FILE *receiveFile = fopen(folder, "w");
+	int bytesRead = 0;
+
+
+	n = sendto(sockfd, fileReceive, sizeof(struct File_package), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+
+	while (bytesRead < file_size){
+
+		if(DEBUG) fprintf(stderr, "- Aguardando pacote do arquivo\n");
+		n = recvfrom(sockfd, fileReceive, sizeof(struct File_package), 0, (struct sockaddr *) &from, &length);
+		if(n < 0) fprintf(stderr, "[ERROR]\n");
+
+		if(DEBUG){
+			printf("\n\nReceived packet from %s:%d\n", inet_ntoa(serv_addr.sin_addr), ntohs(serv_addr.sin_port));
+			printf("Packet Number: %i\n", fileReceive->package);
+			printf("Packet Size Sent: %i\n", (int) strlen(fileReceive->buffer));
+			printf("Received a datagram:\n%s\n", fileReceive->buffer);
+		}
+
+		if(DEBUG) fprintf(stderr, "- Escrevendo buffer no arquivo\n");
+		bytesRead += fwrite(fileReceive->buffer , sizeof(char) ,(int) strlen(fileReceive->buffer) , receiveFile );
+
+		bzero(fileReceive->buffer, sizeof(fileReceive->buffer));
+		// Pacote recebido
+		if(DEBUG) fprintf(stderr, "- Respondendo com ACK pacote do arquivo\n");
+		n = sendto(sockfd, request, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &serv_addr, sizeof(struct sockaddr));
+		if(n < 0) fprintf(stderr, "[ERROR]\n");
+	}
+
+
+
+
+	fclose(receiveFile);
+
+
+
+	if(DEBUG) fprintf(stderr, "=== FIM DOWNLOAD ===\n");
 
 }
 
@@ -219,7 +307,7 @@ void delete_file(char *file){
 
 	char path[MAXNAME + sizeof(homeDir)];
 	memset(path, 0, sizeof(path));
-	
+
 	strcat(path, homeDir);
 	strcat(path, cli->userid);
 	strcat(path, "/");
@@ -271,11 +359,11 @@ void list_dir(int local){
 	}
 	else{
 		if(local == LIST_CLIENT){
-			show_files(cli, 0);		
+			show_files(cli, 0);
 		}
 		else{
 			CLIENT *serverClient = (CLIENT *) request->buffer;
-			show_files(serverClient, 1);		
+			show_files(serverClient, 1);
 		}
 	}
 }
@@ -284,9 +372,25 @@ void list_dir(int local){
 
 void close_session(){
 
-		printf("closing conection with socket...\n");
+		if(DEBUG) fprintf(stderr, "- Enviando comando EXIT\n");
+
+		struct Request *request = (struct Request*)malloc(sizeof(struct Request));
+		request->cmd = EXIT;
+		strcpy(request->user, cli->userid);
+
+		n = sendto(sockfd, request, sizeof(struct Request), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		if(n < 0) fprintf(stderr, "[ERROR]\n");
+
+		//RECEIVE THE ACK FOR THE COMMAND
+		if(DEBUG) fprintf(stderr, "- Aguardando ACK do comando\n");
+		n = recvfrom(sockfd,  request, sizeof(struct Request), 0, (struct sockaddr *) &from, &length);
+		if(n < 0) fprintf(stderr, "[ERROR]\n");
+		if(request->cmd != ACK){
+			fprintf(stderr, "[ERROR] It was not possible execute the command in server\n" );
+			return;
+		}
 		close(sockfd);
-		printf("Session ended successfully! \n");
+		fprintf(stderr,"Session ended successfully! \n");
 		exit(0);
 
 }
@@ -315,21 +419,21 @@ void command_get_func()
 			case DOWNLOAD:
 				directory = strndup(user_cmd+9, strlen(user_cmd));
 				fprintf(stderr, "%s\n", directory);
-				// get_file(directory); //TO DO
+				get_file(directory); //TO DO
 				break;
 			case DELETE:
 				directory = strndup(user_cmd+7, strlen(user_cmd));
 				fprintf(stderr, "%s\n", directory);
 				delete_file(directory);
 				break;
-			case LIST_SERVER: 
+			case LIST_SERVER:
 				list_dir(LIST_SERVER);
 				break;
-			case LIST_CLIENT: 
+			case LIST_CLIENT:
 				list_dir(LIST_CLIENT);
 				break;
 			case GET_SYNC_DIR: break;
-			case EXIT: break;
+			case EXIT: close_session(); break;
 			default: printf("\nINVALID COMMAND \n"); break;
 		}
 		/*
