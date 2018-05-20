@@ -44,6 +44,8 @@ void iniciateList(){
 
 CLIENT* create_and_setClient(char* user_id, int isServer) {
 
+    int i = mkdir("/tmp/SERVER/", 0777);
+
     CLIENT* newClient = malloc(sizeof(CLIENT)); //Create new client
     FILE_PACKAGE *fileReceive = (FILE_PACKAGE*)malloc(sizeof(FILE_PACKAGE));
     FILE *readFile;
@@ -326,11 +328,11 @@ void show_files(CLIENT * client, int isServer){
     printf("Path: %s%s \n", homeDir, client->userid);
   }
 
+  if(client->files_qty == 0) {printf("\t no files in struct \n \n"); return;}
 
   int i, j = 0;
   //percorre array de arquivos e printa
   for (i = 0; i < MAXFILES ; i++){
-
     if(client->file_info[i].size != 0 && client->file_info[i].size != -1){
       j++;
       printf("%i - \t name : %s \t extension: %s \t last_modified: %s \t size: %i \n", j, client->file_info[i].name, client->file_info[i].extension, client->file_info[i].last_modified, client->file_info[i].size);

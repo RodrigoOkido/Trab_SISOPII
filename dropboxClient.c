@@ -340,27 +340,34 @@ void delete_file(char *file){
 }
 
 void list_dir(int local){
+	if(local == LIST_SERVER){
 
-	// Envia o comando para o servidor, para iniciar o upload
-	struct Request *request = (struct Request*)malloc(sizeof(struct Request));
-	request->cmd = local;
-	strcpy(request->user, cli->userid);
+		if(DEBUG) fprintf(stderr, "- Enviando comando LIST_SERVER\n");
 
-	n = sendto(sockfd, request, sizeof(struct Request), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr));
-	//RECEIVE THE ACK FOR THE COMMAND
-	n = recvfrom(sockfd,  request, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &from, &length);
-	if(request->cmd != ACK){
-		fprintf(stderr, "[ERROR] It was not possible execute the command in server\n" );
-		return;
+		// Envia o comando para o servidor, para iniciar o upload
+		struct Request *request = (struct Request*)malloc(sizeof(struct Request));
+		request->cmd = local;
+		strcpy(request->user, cli->userid);
+		n = sendto(sockfd, request, sizeof(struct Request), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr));
+
+		if(DEBUG) fprintf(stderr, "- Aguardando ACK do comando LIST_SERVER\n");
+		//RECEIVE THE ACK FOR THE COMMAND
+		n = recvfrom(sockfd,  request, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &from, &length);
+		if(request->cmd != ACK){
+			fprintf(stderr, "[ERROR] It was not possible execute the command in server\n" );
+			return;
+		}
+
+		if(DEBUG) fprintf(stderr, "- Aguardando lista de arquivos\n");
+		CLIENT* client = (CLIENT*)malloc(sizeof(CLIENT));
+		n = recvfrom(sockfd, client->file_info, sizeof(client->file_info), MSG_CONFIRM, (struct sockaddr *) &from, &length);
+
+		strcpy(client->userid, cli->userid);
+		client->files_qty = 1;
+		show_files(client, 1);
 	}
 	else{
-		if(local == LIST_CLIENT){
-			show_files(cli, 0);
-		}
-		else{
-			CLIENT *serverClient = (CLIENT *) request->buffer;
-			show_files(serverClient, 1);
-		}
+		show_files(cli, 0);
 	}
 }
 

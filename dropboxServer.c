@@ -238,28 +238,30 @@ int main(int argc, char *argv[])
 					break;
 
 			case UPLOAD:
-					if(DEBUG) fprintf(stderr, "- Respondendo o comando com ACK\n");
+					if(DEBUG) fprintf(stderr, "- UPLOAD: Respondendo o comando com ACK\n");
 					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 					receive_file(request->user);
 					break;
 
 			case DOWNLOAD:
-					if(DEBUG) fprintf(stderr, "- Respondendo o comando com ACK\n");
+					if(DEBUG) fprintf(stderr, "- DOWNLOAD: Respondendo o comando com ACK\n");
 					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 					sendFile(request->user);
 					break;
 			case DELETE:
+					if(DEBUG) fprintf(stderr, "- DELETE: Respondendo o comando com ACK\n");
 					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 					delete_file_request(request->user, request->buffer);
 					break;
 			case LIST_SERVER:
-					actualClient = find_or_createClient(request->user);
-					if(DEBUG) show_files(actualClient, 1);
-
-					// TO DO size of struct CLIENT  MAIOR QUE BUFFER sendto 
-					memcpy(answer->buffer, &actualClient, sizeof(actualClient));
-					answer->buffer[sizeof(actualClient)] = '\0';
+					if(DEBUG) fprintf(stderr, "- LIST_SERVER: Respondendo o comando com ACK\n");
 					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+
+					CLIENT* client = find_or_createClient(request->user);
+					if(DEBUG) show_files(client, 1);
+
+					if(DEBUG) fprintf(stderr, "- LIST_SERVER: Enviando lista de arquivos\n");
+					n = sendto(sockfd, client->file_info, sizeof(client->file_info), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 					break;
 			case LIST_CLIENT:
 					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
