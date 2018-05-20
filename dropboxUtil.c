@@ -19,7 +19,7 @@ char extension[EXT]; //Pointer to get the extension of the file created (activat
 int file_length; //Stores the length of the new file.
 
 
-CLIENT* client_list;
+CLIENT client_list[MAXCLIENTS];
 int listActivated = 0;
 
 
@@ -39,31 +39,31 @@ void showMenu(CLIENT* actualClient) {
 
 void iniciateList(){
     total_client = 0;
-    client_list = malloc(MAXCLIENTS * sizeof(CLIENT));
+    //client_list = malloc(MAXCLIENTS * sizeof(CLIENT));
 }
 
 CLIENT* create_and_setClient(char* user_id, int isServer) {
 
     int i = mkdir("/tmp/SERVER/", 0777);
 
-    CLIENT* newClient = malloc(sizeof(CLIENT)); //Create new client
+    //CLIENT* newClient = malloc(sizeof(CLIENT)); //Create new client
     FILE_PACKAGE *fileReceive = (FILE_PACKAGE*)malloc(sizeof(FILE_PACKAGE));
     FILE *readFile;
     int count;
 
     //Inicialization of this new Client.
-    newClient->devices[0]= 0;
-    newClient->devices[1]= 0;
-    newClient->devices[2]= 0;
-    char id [sizeof(user_id)];
-    memcpy( id, &user_id[0], sizeof(user_id));
-    strncpy(newClient->userid , id , sizeof(id));
-    newClient->userid[UNIQUE_ID] = '\0';
-    newClient->logged_in = 0;
+    client_list[total_client].devices[0]= 0;
+    client_list[total_client].devices[1]= 0;
+    client_list[total_client].devices[2]= 0;
+    char id [strlen(user_id)];
+    strcpy( id, user_id);
+    strcpy(client_list[total_client].userid , id);
+    client_list[total_client].userid[UNIQUE_ID] = '\0';
+    client_list[total_client].logged_in = 0;
 
 
-    char path[MAXNAME + sizeof(serverDir)]; //folder
-    char aux[MAXNAME + sizeof(serverDir) + EXT + 1]; //file
+    char path[MAXNAME + strlen(serverDir)]; //folder
+    char aux[MAXNAME + strlen(serverDir) + EXT + 1]; //file
     memset(path, 0, sizeof(path));
 
     strcat(path, serverDir);
@@ -80,7 +80,7 @@ CLIENT* create_and_setClient(char* user_id, int isServer) {
       /* print all the files and directories within directory */
       while ((ent = readdir (clientDir)) != NULL) {
 
-        if ((strncmp(ent->d_name, ".", sizeof(".")) == 0) || (strncmp(ent->d_name, "..", sizeof("..")) == 0)){
+        if ((strcmp(ent->d_name, ".") == 0) || (strcmp(ent->d_name, "..") == 0)){
           if(DEBUG) printf (" pula %s\n", ent->d_name);
         }
         else{
@@ -108,7 +108,7 @@ CLIENT* create_and_setClient(char* user_id, int isServer) {
             fileReceive->size = file_length; //copy size to struct
             fileReceive->package = 0; //set package to zero
 
-            createNewFile(newClient, fileReceive); //cria o file_info e adiciona na struct cliente
+            createNewFile(&client_list[total_client], fileReceive); //cria o file_info e adiciona na struct cliente
 
             //TODO sync OR get_file => local folder 
             count++;
@@ -126,12 +126,12 @@ CLIENT* create_and_setClient(char* user_id, int isServer) {
       int i = mkdir(path, 0777);
       if(i == -1) printf("[ERROR] create directory  %s \n", path); //Pasta já existe
       if(i != 0) printf("[ERROR] create directory  %s \n", path); // ERRO no mkdir
-      newClient->files_qty = 0;
+      client_list[total_client].files_qty = 0;
     }
 
     if(isServer){
       //Put the new Client in the list of clients
-      client_list[total_client] = *newClient;
+      //client_list[total_client] = *client_list[total_client];
 
       //Set actual Client for this one. The actual indicates the current
       //user logged in Dropbox.
@@ -139,7 +139,7 @@ CLIENT* create_and_setClient(char* user_id, int isServer) {
       total_client++; //Increment the total of the Clients after created.
     }
     else{
-      return newClient;
+      return &client_list[total_client];
     }
 
     
@@ -155,10 +155,10 @@ CLIENT* find_or_createClient(char* userid) {
       listActivated = 1;
     }
 
-    for (i = 0; i < total_client ; i++){
-        if (strncmp(client_list[i].userid, userid, sizeof(userid)) == 0) {
+    for (i = 0; i < MAXCLIENTS ; i++){
+        if (strcmp(client_list[i].userid, userid) == 0) {
             if(DEBUG) {
-                fprintf(stderr,"CLIENT INDEX: %i",i);
+                fprintf(stderr,"\nCLIENT INDEX: %i\n\n",i);
             }
             return &client_list[i];
         }
@@ -168,6 +168,7 @@ CLIENT* find_or_createClient(char* userid) {
       fprintf(stderr, "Unable to create more clients\n");
       return NULL;
     } else {
+        fprintf(stderr,"\nCREATE USER: %s\n\n",userid);
         return create_and_setClient(userid, 1);
     }
 }

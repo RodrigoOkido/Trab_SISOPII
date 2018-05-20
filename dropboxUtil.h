@@ -103,7 +103,7 @@ typedef struct File_package {
 #ifndef _DROPBOXUTIL_H_
 #define _DROPBOXUTIL_H_
 extern int file_length,total_client;
-extern CLIENT* client_list;
+extern CLIENT client_list[MAXCLIENTS];
 
 #endif
 

@@ -258,6 +258,7 @@ int main(int argc, char *argv[])
 					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 
 					CLIENT* client = find_or_createClient(request->user);
+
 					if(DEBUG) show_files(client, 1);
 
 					if(DEBUG) fprintf(stderr, "- LIST_SERVER: Enviando lista de arquivos\n");
