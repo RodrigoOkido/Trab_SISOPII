@@ -188,3 +188,5 @@ int createNewFile(CLIENT* actualClient, struct File_package* file);
 int get_sync_dir(char* userId);
 
 void show_files(CLIENT * client, int isServer);
+
+int copy_file(char *old_filename, char  *new_filename);

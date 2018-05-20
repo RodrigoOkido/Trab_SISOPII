@@ -125,7 +125,7 @@ void send_file(char *file){
 	}
 
 	fseek(sendFile, 0, SEEK_END); //Seek the pointer to the end of the file to check the last byte number.
-	file_length = ftell(sendFile); //Store the file length of the received file.
+	int file_size = ftell(sendFile); //Store the file length of the received file.
 	fseek(sendFile, 0, SEEK_SET); //Turn the pointer to the beginning.
 
 	// Envia o comando para o servidor, para iniciar o upload
@@ -149,7 +149,7 @@ void send_file(char *file){
 	struct File_package *fileSend = (struct File_package*)malloc(sizeof(struct File_package));
 	strcpy(fileSend->name, file);
 	parseFile(fileSend); 		//Parse the filename and file extension to do the struct (check dropboxUtil.c for this function)
-	fileSend->size = file_length;
+	fileSend->size = file_size;
 	fileSend->package = 0;
 
 	//SEND STRUCT FILE WITH INFORMATION
@@ -166,7 +166,7 @@ void send_file(char *file){
 		return;
 	}
 
-	while(!feof(sendFile) && file_length > 0) {
+	while(!feof(sendFile) && file_size > 0) {
 
 		fileSend->package++;
 
@@ -198,11 +198,33 @@ void send_file(char *file){
 		}
 	}
 
-
 	printf("File ( %s ) uploaded sucessfully!\n", fileSend->name);
-	file_length = 0;
 
 	fclose(sendFile);
+
+    char *word = strtok(file,"/");
+    char *sync = malloc(strlen(homeDir) + strlen(cli->userid));
+    strcpy(sync,"sync_dir_");
+    strcat(sync, cli->userid);
+    int isSyncDir = 0;
+    while(word){
+        if(strcmp(word,sync) == 0) isSyncDir = 1;
+        word = strtok(NULL, "/");
+    }
+
+    if(!isSyncDir){
+		if(DEBUG) fprintf(stderr, "- copiando arquivo para sync_dir_%s arquivo\n", cli->userid);
+		char* cpyfile = malloc(strlen(homeDir) + strlen(fileSend->name)+EXT+1); /* create space for the file */
+		strcpy(cpyfile, homeDir); /* copy filename into the new var */
+		strcat(cpyfile, cli->userid); /* copy filename into the new var */
+		strcat(cpyfile, "/"); /* copy filename into the new var */
+		strcat(cpyfile, fileSend->name); /* copy filename into the new var */
+		strcat(cpyfile, "."); /* copy filename into the new var */
+		strcat(cpyfile, fileSend->extension); /* concatenate extension */
+		copy_file(file, cpyfile);
+
+		createNewFile(cli, fileSend);
+	}
 
 	if(DEBUG) fprintf(stderr, "=== FIM UPLOAD ===\n");
 }
