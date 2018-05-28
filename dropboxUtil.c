@@ -232,7 +232,8 @@ int parseFile(struct File_package* file){
 
 void delete_info_file(CLIENT* client, char* namefile){
   //atualiza quantidade de arquivos
-  client->files_qty = client->files_qty - 1;
+
+  client->files_qty = (client->files_qty > 0)  ? client->files_qty - 1 : 0;
 
   char arquivo[MAXNAME+EXT+1];
 

@@ -385,7 +385,7 @@ void list_dir(int local){
 		n = recvfrom(sockfd, client->file_info, sizeof(client->file_info), MSG_CONFIRM, (struct sockaddr *) &from, &length);
 
 		strcpy(client->userid, cli->userid);
-		client->files_qty = 1;
+		// client->files_qty = 1;
 		show_files(client, 1);
 	}
 	else{
