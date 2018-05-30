@@ -384,7 +384,7 @@ void delete_file(char *file){
 
 void list_dir(int local){
 
-	sync_client();
+	// sync_client();
 	if(local == LIST_SERVER){
 
 		if(DEBUG) fprintf(stderr, "- Enviando comando LIST_SERVER\n");
@@ -408,7 +408,7 @@ void list_dir(int local){
 		n = recvfrom(sockfd, client->file_info, sizeof(client->file_info), MSG_CONFIRM, (struct sockaddr *) &from, &length);
 
 		strcpy(client->userid, cli->userid);
-		// client->files_qty = 1;
+		client->files_qty = 1;
 		show_files(client, 1);
 	}
 	else{
@@ -547,7 +547,7 @@ int main(int argc, char *argv[]){
 			//cria diretório local
 			int dir = get_sync_dir(argv[1]);
 			if(dir == 0) // == 0 Diretório já existe, pode ser sincronizado
-			 sync_client();                  //Sync client files with the server
+			// sync_client(); //Sync client files with the server
 			if(dir == -2) exit(dir);
 
 			// Cria a thred de sincronização do diretório

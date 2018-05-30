@@ -54,7 +54,6 @@ CLIENT* create_and_setClient(char* user_id, int isServer) {
     //Inicialization of this new Client.
     client_list[total_client].devices[0]= 0;
     client_list[total_client].devices[1]= 0;
-    client_list[total_client].devices[2]= 0;
     char id [strlen(user_id)];
     strcpy( id, user_id);
     strcpy(client_list[total_client].userid , id);
