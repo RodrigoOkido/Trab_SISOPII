@@ -7,6 +7,7 @@
 
 #include "dropboxUtil.h"
 #include "dropboxClient.h"
+#include <unistd.h>
 
 
 int sockfd, n ;
@@ -57,9 +58,14 @@ int login_server(char *host, int port) {
 
 
 
-void *sync_client(void *arg) {
+void *sync_client() {
+
+	notifyStart = inotify_init();
+
+	
 
 	int length, i = 0;
+	int fd = 0;
 	char buffer[EVENT_BUF_LEN];
 	char path[MAXNAME + sizeof(homeDir)];
 	memset(path, 0, sizeof(path));
@@ -67,48 +73,63 @@ void *sync_client(void *arg) {
 	strcat(path, homeDir);
 	strcat(path, cli->userid);
 	strcat(path, "/");
-	
-	while (1) { //fica verificando se alterou o diretorio
-		length = read(notifyStart, buffer, EVENT_BUF_LEN);
-		fprintf(stderr,"[sync_client]\n");
 
-		if (notifyStart < 0) {
+	char serverpath[MAXNAME + sizeof(serverDir)];
+	memset(serverpath, 0, sizeof(serverpath));
+
+	strcat(serverpath, serverDir);
+	strcat(serverpath, cli->userid);
+	strcat(serverpath, "/");
+
+	fd = inotify_init();
+
+	if (fd < 0) {
 				perror("inotify_init");
-		}
+	}
 
+	watchList = inotify_add_watch (fd, serverDir, IN_CREATE | IN_DELETE | IN_MODIFY | IN_CLOSE_WRITE | IN_MOVED_FROM); // por enquanto ve apenas se foi criado arquivo, deletado ou modificado
+	
+	//while (1) { //fica verificando se alterou o diretorio
+		length = read(fd, buffer, EVENT_BUF_LEN);
+		fprintf(stderr,"[sync_client]\n");
+	
+		if (length < 0) {
+			perror( "read" );
+		}
+		
 		while ( i < length ) {
 
-		struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
+			struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
 
-		if ( event->len ) {
-			if ( event->mask & IN_CREATE || event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO) {
+			if ( event->len ) {
+				if ( event->mask & IN_CREATE || event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO) {
 
 				
-				strcat(path, event->name);
-				if( (fopen(path, "r")) == NULL ) {
+					strcat(serverpath, event->name);   //teve alteracao no server?
+					if( (fopen(path, "r")) == NULL ) {
 
-				   printf("ERROR: File not found.\n");
+					   printf("ERROR: File not found.\n");
+					}
+					else {
+						send_file(path);
+						// printf( "New file %s created.\n", event->name );
+					}
 				}
-				else {
-					send_file(path);
-					// printf( "New file %s created.\n", event->name );
+
+				else if ( event->mask & IN_DELETE  || event->mask & IN_MOVED_FROM) {
+					strcat(path, event->name);
+					delete_file (path);
+					printf( "File %s deleted.\n", event->name );
 				}
-			}
 
-			else if ( event->mask & IN_DELETE  || event->mask & IN_MOVED_FROM) {
-				strcat(path, event->name);
-				delete_file (path);
-				printf( "File %s deleted.\n", event->name );
 			}
-
-		}
 
 		i += EVENT_SIZE + event->len;
 		}
 
 		i = 0;
-		sleep(10); //verificar a cada 10 segundos
-	}
+	//	sleep(10); //verificar a cada 10 segundos
+	//}
 
 }
 
@@ -362,6 +383,8 @@ void delete_file(char *file){
 }
 
 void list_dir(int local){
+
+	sync_client();
 	if(local == LIST_SERVER){
 
 		if(DEBUG) fprintf(stderr, "- Enviando comando LIST_SERVER\n");
@@ -524,7 +547,7 @@ int main(int argc, char *argv[]){
 			//cria diretório local
 			int dir = get_sync_dir(argv[1]);
 			if(dir == 0) // == 0 Diretório já existe, pode ser sincronizado
-			 //sync_client(); //Sync client files with the server
+			 sync_client();                  //Sync client files with the server
 			if(dir == -2) exit(dir);
 
 			// Cria a thred de sincronização do diretório
