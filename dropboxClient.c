@@ -488,30 +488,7 @@ void command_get_func()
 			case EXIT: close_session(); break;
 			default: printf("\nINVALID COMMAND \n"); break;
 		}
-		/*
-		// SENDO MESSAGE OF THE USER COMMAND
-		n = sendto(sockfd, user_cmd, strlen(user_cmd) -1, MSG_CONFIRM,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		// RECEIVE THE MESSAGE FROM THE SERVER ABOUT THE USER COMMAND
-		n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
-		fprintf(stderr, "%s\n", send_buffer);
-		bzero(send_buffer, BUFFER_TAM);
 
-		switch(code){
-			case UPLOAD:  break;
-			case DOWNLOAD: get_file(directory); break;
-			case DELETE: delete_file(directory); break;
-			case LIST_SERVER: break;
-			case LIST_CLIENT: break;
-			case GET_SYNC_DIR: break;
-			case EXIT: close_session(); start = 0; break;
-			case ERROR:
-			default: printf("\nINVALID COMMAND \n"); break;
-		}
-
-		memset(user_cmd, 0, sizeof user_cmd);
-		command_code = 0;
-		bzero(send_buffer, BUFFER_TAM);
-		*/
 		printf("\n\nPress enter...\n");
 		char enter = 0;
 		while (enter != '\r' && enter != '\n') {

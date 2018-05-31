@@ -52,7 +52,7 @@ CLIENT* create_and_setClient(char* user_id, int isServer) {
     int count;
 
     //Inicialization of this new Client.
-    client_list[total_client].devices[0]= 0;
+    client_list[total_client].devices[0]= 1;
     client_list[total_client].devices[1]= 0;
     char id [strlen(user_id)];
     strcpy( id, user_id);
@@ -144,8 +144,23 @@ CLIENT* create_and_setClient(char* user_id, int isServer) {
     
 }
 
+int logged_device (CLIENT* client, int io){ 
+  //  Turn device value
+  //  (login)  io = 1 ~> device (0 -> 1)
+  //  (logout) io = 0 ~> device (1 -> 0)   
+  int i;
+  for (i = 0; i < MAXDEVICES; ++i)
+  {
+     if(!(client->devices[i] == io)){ //not cond
+      client->devices[i] = io;
+        if (DEBUG) fprintf(stderr,"\nDEVICE (%i) : %i\n\n",i, io);
+      return 1;
+     }
+  }
+  return 0; //error
+}
 
-CLIENT* find_or_createClient(char* userid) {
+CLIENT* find_or_createClient(char* userid, int isConnect) {
 
     int i;
 
@@ -159,7 +174,16 @@ CLIENT* find_or_createClient(char* userid) {
             if(DEBUG) {
                 fprintf(stderr,"\nCLIENT INDEX: %i\n\n",i);
             }
-            return &client_list[i];
+            
+            if(isConnect){
+              if (logged_device(&client_list[i], 1)){
+                return &client_list[i];
+              }
+              else{
+                fprintf(stderr, "\n \t Unable to login more devices \n");
+                return NULL;
+              }
+            }
         }
     }
 

@@ -19,32 +19,33 @@
 #include <time.h>
 #include <dirent.h>
 
-#define PORT 		4000
-#define BUFFER_TAM 	256
+#define DEBUG       1 //DEBUGGING PURPOSE
+#define PORT        4000
+#define BUFFER_TAM  256
 
-#define MAXNAME		256
-#define MAXFILES	20
+#define MAXNAME     256
+#define MAXFILES    20
+#define MAXDEVICES  2
 
-#define UNIQUE_ID 10
-#define EXT 6
-#define DATE 18
-#define MAXCLIENTS 150
+#define UNIQUE_ID   10
+#define EXT         6
+#define DATE        18
+#define MAXCLIENTS  150
 
 //parseCommands
-#define UPLOAD  1
-#define DOWNLOAD  2
-#define DELETE  3
-#define LIST_SERVER  4
-#define LIST_CLIENT  5
+#define UPLOAD        1
+#define DOWNLOAD      2
+#define DELETE        3
+#define LIST_SERVER   4
+#define LIST_CLIENT   5
 #define GET_SYNC_DIR  6
-#define EXIT  7
-#define CONNECT 99
-#define ERROR  -1
+#define EXIT          7
+#define CONNECT       99
+#define ERROR         -1
 
-#define MAX_THREADS 100
-#define ACK 100
+#define MAX_THREADS   100
+#define ACK           100
 
-#define DEBUG 1 //DEBUGGING PURPOSE
 
 extern int command_code;
 extern int mkdir();
@@ -60,11 +61,11 @@ static const char serverDir[] = "/tmp/SERVER/sync_dir_";
   mofidicação no arquivo.
   size indica o tamanho do arquivo, em bytes.
 */
-typedef struct file_info	{
-	char name[MAXNAME];
-	char extension[EXT];
-	char last_modified[DATE];
-	int	size;
+typedef struct file_info  {
+  char name[MAXNAME];
+  char extension[EXT];
+  char last_modified[DATE];
+  int size;
 } FILE_INFO;
 
 
@@ -78,7 +79,7 @@ typedef struct file_info	{
   logged_in – cliente está logado ou não.
 */
 typedef struct client {
-  int devices[2];
+  int devices[MAXDEVICES];
   char userid[UNIQUE_ID];
   FILE_INFO file_info[MAXFILES];
   int files_qty;
@@ -112,7 +113,7 @@ extern CLIENT client_list[MAXCLIENTS];
 //const char homeDir[] = "./temp/sync_dir_"; //===> ALTERAR PARA /home/sync_dir_ <=======//
 
 /**
-	Show the menu for the client when connected.
+  Show the menu for the client when connected.
 */
 void showMenu();
 
@@ -126,42 +127,42 @@ void iniciateList();
 
 
 /**
-	Create a client and set his session configs. Called only if userID is new.
+  Create a client and set his session configs. Called only if userID is new.
 */
 CLIENT* create_and_setClient(char* user_id, int isServer);
 
 
 
 /**
-	Search if the client exists on the list clients. If 0,
-	the user will be able to login with all your changes made in
-	the session before (if changes was made).
+  Search if the client exists on the list clients. If 0,
+  the user will be able to login with all your changes made in
+  the session before (if changes was made).
 
-	@param userId, actualClient
-	@return >= 0 The client exist and is set (Returning the index of him in the list)
-	@return < 0 The client dont exist.
+  @param userId, actualClient
+  @return >= 0 The client exist and is set (Returning the index of him in the list)
+  @return < 0 The client dont exist.
 */
-CLIENT* find_or_createClient(char* userid);
+CLIENT* find_or_createClient(char* userid, int isConnect);
 
 
 
 /**
-	Check the input of the user on the client side. This is called to check what
-	action the user wants to do.
+  Check the input of the user on the client side. This is called to check what
+  action the user wants to do.
 
-	@param cmd[] The input command received
-	@return Return the code of the command wanted
+  @param cmd[] The input command received
+  @return Return the code of the command wanted
 */
 int parseCommand(char cmd[]);
 
 
 
 /**
-	Parse the file which user wants to send to the server.
+  Parse the file which user wants to send to the server.
 
-	@param file The file which will be send to server
-	@return return 0 - OK
-	@return return < 0 - SOMETHING WRONG
+  @param file The file which will be send to server
+  @return return 0 - OK
+  @return return < 0 - SOMETHING WRONG
 */
 int parseFile(struct File_package* file);
 
@@ -190,3 +191,5 @@ int get_sync_dir(char* userId);
 void show_files(CLIENT * client, int isServer);
 
 int copy_file(char *old_filename, char  *new_filename);
+
+int logged_device(CLIENT* client, int io);

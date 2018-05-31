@@ -40,7 +40,7 @@ void receive_file(char* userid) {
 	n = recvfrom(sockfd, fileReceive, sizeof(struct File_package), 0, (struct sockaddr *) &cli_addr, &newClilen);
 	if(n < 0) fprintf(stderr, "[ERROR]\n");
 
-	CLIENT *client = find_or_createClient(userid);
+	CLIENT *client = find_or_createClient(userid, 0);
 
 	createNewFile(client, fileReceive);
 
@@ -180,8 +180,6 @@ void sendFile(char* userid){
 
 void delete_file_request(char * user, char * file){
 
-	//CLIENT* client = find_or_createClient(user);
-
 	char path[MAXNAME + sizeof(serverDir)];
 	memset(path, 0, sizeof(path));
 
@@ -232,7 +230,7 @@ int main(int argc, char *argv[])
 		answer->cmd = ACK;
 		switch(request->cmd){
 			case CONNECT:
-					actualClient = find_or_createClient(request->user);
+					actualClient = find_or_createClient(request->user, 1);
 					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 					fprintf(stderr,"User: %s connected\n", actualClient->userid);
 					break;
@@ -257,7 +255,7 @@ int main(int argc, char *argv[])
 					if(DEBUG) fprintf(stderr, "- LIST_SERVER: Respondendo o comando com ACK\n");
 					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 
-					CLIENT* client = find_or_createClient(request->user);
+					CLIENT* client = find_or_createClient(request->user, 0);
 
 					if(DEBUG) show_files(client, 1);
 
@@ -269,6 +267,8 @@ int main(int argc, char *argv[])
 					break;
 			case GET_SYNC_DIR: break;
 			case EXIT:
+					actualClient = find_or_createClient(request->user, 0);
+					logged_device(actualClient, 0);
 					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 					fprintf(stderr,"User: %s disconnected!\n", actualClient->userid);
 			 		break;
@@ -298,7 +298,7 @@ void *handle_request(void *req)
 	answer->cmd = ACK;
 	switch(request->cmd){
 		case CONNECT:
-				actualClient = find_or_createClient(request->user);
+				actualClient = find_or_createClient(request->user, 1);
 				n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 				fprintf(stderr,"User: %s connected\n", actualClient->userid);
 				break;
