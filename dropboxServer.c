@@ -231,8 +231,15 @@ int main(int argc, char *argv[])
 		switch(request->cmd){
 			case CONNECT:
 					actualClient = find_or_createClient(request->user, 1);
+					if(actualClient != NULL){
+						fprintf(stderr,"User: %s connected\n", actualClient->userid);
+					}
+					else{
+						answer->cmd = ERROR;
+						fprintf(stderr,"User: %s ERROR to connect\n", actualClient->userid);
+
+					}
 					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
-					fprintf(stderr,"User: %s connected\n", actualClient->userid);
 					break;
 
 			case UPLOAD:
@@ -299,8 +306,16 @@ void *handle_request(void *req)
 	switch(request->cmd){
 		case CONNECT:
 				actualClient = find_or_createClient(request->user, 1);
+
+				if(actualClient != NULL){
+					fprintf(stderr,"User: %s connected\n", actualClient->userid);
+				}
+				else{
+					fprintf(stderr,"Error to connect user \n");
+					answer->cmd = ERROR;
+				}
 				n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
-				fprintf(stderr,"User: %s connected\n", actualClient->userid);
+
 				break;
 
 		case UPLOAD:

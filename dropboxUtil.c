@@ -149,13 +149,18 @@ int logged_device (CLIENT* client, int io){
   //  (login)  io = 1 ~> device (0 -> 1)
   //  (logout) io = 0 ~> device (1 -> 0)   
   int i;
-  for (i = 0; i < MAXDEVICES; ++i)
-  {
-     if(!(client->devices[i] == io)){ //not cond
+  for (i = 0; i < MAXDEVICES; ++i){
+    if(!(client->devices[i] == io)){ //not cond
       client->devices[i] = io;
-        if (DEBUG) fprintf(stderr,"\nDEVICE (%i) : %i\n\n",i, io);
+        if (DEBUG) fprintf(stderr,"\n SET DEVICE (%i) : %i\n\n",i, io);
       return 1;
-     }
+    }
+  }
+  if (DEBUG) {
+    i = 0;
+    fprintf(stderr,"\n DEVICE (%i) : %i\n",i, client->devices[i]);
+    i++;
+    fprintf(stderr," DEVICE (%i) : %i\n",i, client->devices[i]);
   }
   return 0; //error
 }
