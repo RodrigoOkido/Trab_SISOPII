@@ -10,15 +10,20 @@
 #include <unistd.h>
 
 
-int sockfd, n ;
+int n ;
 unsigned int length;
-struct sockaddr_in serv_addr, from;
 struct hostent *server;
 char send_buffer[BUFFER_TAM];
 char user_cmd[80];
 char directory[50]; //
 int notifyStart;
 int watchList;
+
+
+struct Request *request;
+pthread_t threads[MAX_THREADS];
+int thread_num = 0;
+
 
 CLIENT* cli;
 
@@ -32,7 +37,7 @@ void startNotify () {
 
 
 
-int login_server(char *host, int port) {
+int login_server(char *host, int port, CLIENT* cli) {
 
 	server = gethostbyname(host);
 
@@ -42,16 +47,17 @@ int login_server(char *host, int port) {
 		exit(0);
 	}
 
-	 // Executa a operação de abrir o socket
-	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-		printf("[ERROR] Socket cannot be opened.");
-	}
+	 // Executa a operação de abrir o sockets de requests e socket
+	 // para as operações do cliente que deseja logar.
+	if (((cli->sockreq = socket(AF_INET, SOCK_DGRAM, 0)) == -1) || ((cli->sockaction = socket(AF_INET, SOCK_DGRAM, 0)) == -1)) {
+ 		printf("[ERROR] Some socket cannot be opened.");
+ 	}
 
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(PORT);
-	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
+	cli->serv_request.sin_family = AF_INET;
+	cli->serv_request.sin_port = htons(PORT);
+	cli->serv_request.sin_addr = *((struct in_addr *)server->h_addr);
 
-	bzero(&(serv_addr.sin_zero), 8);
+	bzero(&(cli->serv_request.sin_zero), 8);
 
 	return 1;
 }
@@ -62,7 +68,7 @@ void *sync_client() {
 
 	notifyStart = inotify_init();
 
-	
+
 
 	int length, i = 0;
 	int fd = 0;
@@ -88,15 +94,15 @@ void *sync_client() {
 	}
 
 	watchList = inotify_add_watch (fd, serverDir, IN_CREATE | IN_DELETE | IN_MODIFY | IN_CLOSE_WRITE | IN_MOVED_FROM); // por enquanto ve apenas se foi criado arquivo, deletado ou modificado
-	
+
 	//while (1) { //fica verificando se alterou o diretorio
 		length = read(fd, buffer, EVENT_BUF_LEN);
 		fprintf(stderr,"[sync_client]\n");
-	
+
 		if (length < 0) {
 			perror( "read" );
 		}
-		
+
 		while ( i < length ) {
 
 			struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
@@ -104,7 +110,7 @@ void *sync_client() {
 			if ( event->len ) {
 				if ( event->mask & IN_CREATE || event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO) {
 
-				
+
 					strcat(serverpath, event->name);   //teve alteracao no server?
 					if( (fopen(path, "r")) == NULL ) {
 
@@ -133,6 +139,26 @@ void *sync_client() {
 
 }
 
+int send_cmdRequest(int cmd){
+		request = (struct Request*)malloc(sizeof(struct Request));
+		request->cmd = cmd;
+		strcpy(request->user, cli->userid);
+
+		if(DEBUG) fprintf(stderr, "- Enviando comando \n");
+		n = sendto(cli->sockreq, request, sizeof(struct Request), 0,(const struct sockaddr *) &cli->serv_request, sizeof(struct sockaddr_in));
+		if(n < 0) fprintf(stderr, "[ERROR]\n");
+
+		//RECEIVE THE ACK FOR THE COMMAND
+		if(DEBUG) fprintf(stderr, "- Aguardando ACK do comando \n");
+		n = recvfrom(cli->sockreq,  request, sizeof(struct Request), 0, (struct sockaddr *) &cli->serv_response, &length);
+		if(n < 0) fprintf(stderr, "[ERROR]\n");
+		if(request->cmd != ACK){
+			fprintf(stderr, "[ERROR] It was not possible execute the command in server\n" );
+			return -1;
+		}
+		return 0;
+}
+
 
 void send_file(char *file){
 
@@ -149,21 +175,8 @@ void send_file(char *file){
 	int file_size = ftell(sendFile); //Store the file length of the received file.
 	fseek(sendFile, 0, SEEK_SET); //Turn the pointer to the beginning.
 
-	// Envia o comando para o servidor, para iniciar o upload
-	struct Request *request = (struct Request*)malloc(sizeof(struct Request));
-	request->cmd = UPLOAD;
-	strcpy(request->user, cli->userid);
 
-	if(DEBUG) fprintf(stderr, "- Enviando comando UPLOAD\n");
-	n = sendto(sockfd, request, sizeof(struct Request), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-	if(n < 0) fprintf(stderr, "[ERROR]\n");
-
-	//RECEIVE THE ACK FOR THE COMMAND
-	if(DEBUG) fprintf(stderr, "- Aguardando ACK do comando\n");
-	n = recvfrom(sockfd,  request, sizeof(struct Request), 0, (struct sockaddr *) &from, &length);
-	if(n < 0) fprintf(stderr, "[ERROR]\n");
-	if(request->cmd != ACK){
-		fprintf(stderr, "[ERROR] It was not possible execute the command in server\n" );
+	if(send_cmdRequest(UPLOAD) == -1){
 		return;
 	}
 
@@ -175,12 +188,12 @@ void send_file(char *file){
 
 	//SEND STRUCT FILE WITH INFORMATION
 	if(DEBUG) fprintf(stderr, "- Enviando pacote de informações\n");
-	n = sendto(sockfd, fileSend, sizeof(struct File_package), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	n = sendto(cli->sockaction, fileSend, sizeof(struct File_package), 0,(const struct sockaddr *) &cli->serv_request, sizeof(struct sockaddr_in));
 	if(n < 0) fprintf(stderr, "[ERROR]\n");
 
 	//RECEIVE THE ACK FOR THE COMMAND
 	if(DEBUG) fprintf(stderr, "- Aguardadno ACK do pacote de informações\n");
-	n = recvfrom(sockfd,  request, sizeof(struct Request), 0, (struct sockaddr *) &from, &length);
+	n = recvfrom(cli->sockaction,  request, sizeof(struct Request), 0, (struct sockaddr *) &cli->serv_response, &length);
 	if(n < 0) fprintf(stderr, "[ERROR]\n");
 	if(request->cmd != ACK){
 		fprintf(stderr, "[ERROR] in receive ACK\n" );
@@ -189,62 +202,62 @@ void send_file(char *file){
 
 	while(!feof(sendFile) && file_size > 0) {
 
-		fileSend->package++;
+			fileSend->package++;
 
-		//Zero out our send buffer
-		bzero(fileSend->buffer, sizeof(fileSend->buffer));
+			//Zero out our send buffer
+			bzero(fileSend->buffer, sizeof(fileSend->buffer));
 
-		int s = fread(fileSend->buffer, sizeof(char), sizeof(fileSend->buffer)-1, sendFile);
+			int s = fread(fileSend->buffer, sizeof(char), sizeof(fileSend->buffer)-1, sendFile);
 
-		//Send data through our socket
-		do {
-			if(DEBUG) fprintf(stderr, "- Enviado pacote do arquivo\n");
-			n = sendto(sockfd, fileSend, sizeof(struct File_package), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-			if(n<0) printf("[ERROR] in package %d\n", fileSend->package);
-		} while(n < 0);
+			//Send data through our socket
+			do {
+				if(DEBUG) fprintf(stderr, "- Enviado pacote do arquivo\n");
+				n = sendto(cli->sockaction, fileSend, sizeof(struct File_package), 0,(const struct sockaddr *) &cli->serv_request, sizeof(struct sockaddr_in));
+				if(n<0) printf("[ERROR] in package %d\n", fileSend->package);
+			} while(n < 0);
 
-		if(DEBUG){
-			printf("\n");
-			printf("Packet Number: %i\n", fileSend->package);
-			printf("Packet Size Sent: %i\n",s);
-			printf("\n");
-		}
+			if(DEBUG){
+				printf("\n");
+				printf("Packet Number: %i\n", fileSend->package);
+				printf("Packet Size Sent: %i\n",s);
+				printf("\n");
+			}
 
-		if(DEBUG) fprintf(stderr, "- Aguardando ACK do pacote do arquivo\n");
-		//RECEIVE THE ACK FOR THE PACKAGE
-		n = recvfrom(sockfd,  request, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &from, &length);
-		if(request->cmd != ACK){
-			fprintf(stderr, "[ERROR] ACK\n" );
-			return;
-		}
+			if(DEBUG) fprintf(stderr, "- Aguardando ACK do pacote do arquivo\n");
+			//RECEIVE THE ACK FOR THE PACKAGE
+			n = recvfrom(cli->sockaction,  request, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &cli->serv_response, &length);
+			if(request->cmd != ACK){
+				fprintf(stderr, "[ERROR] ACK\n" );
+				return;
+			}
 	}
 
 	printf("File ( %s ) uploaded sucessfully!\n", fileSend->name);
 
 	fclose(sendFile);
 
-    char *word = strtok(file,"/");
-    char *sync = malloc(strlen(homeDir) + strlen(cli->userid));
-    strcpy(sync,"sync_dir_");
-    strcat(sync, cli->userid);
-    int isSyncDir = 0;
-    while(word){
-        if(strcmp(word,sync) == 0) isSyncDir = 1;
-        word = strtok(NULL, "/");
-    }
+	char *word = strtok(file,"/");
+	char *sync = malloc(strlen(homeDir) + strlen(cli->userid));
+	strcpy(sync,"sync_dir_");
+	strcat(sync, cli->userid);
+	int isSyncDir = 0;
+	while(word){
+	    if(strcmp(word,sync) == 0) isSyncDir = 1;
+	    word = strtok(NULL, "/");
+	}
 
-    if(!isSyncDir){
-		if(DEBUG) fprintf(stderr, "- copiando arquivo para sync_dir_%s arquivo\n", cli->userid);
-		char* cpyfile = malloc(strlen(homeDir) + strlen(fileSend->name)+EXT+1); /* create space for the file */
-		strcpy(cpyfile, homeDir); /* copy filename into the new var */
-		strcat(cpyfile, cli->userid); /* copy filename into the new var */
-		strcat(cpyfile, "/"); /* copy filename into the new var */
-		strcat(cpyfile, fileSend->name); /* copy filename into the new var */
-		strcat(cpyfile, "."); /* copy filename into the new var */
-		strcat(cpyfile, fileSend->extension); /* concatenate extension */
-		copy_file(file, cpyfile);
+	if(!isSyncDir){
+	if(DEBUG) fprintf(stderr, "- copiando arquivo para sync_dir_%s arquivo\n", cli->userid);
+	char* cpyfile = malloc(strlen(homeDir) + strlen(fileSend->name)+EXT+1); /* create space for the file */
+	strcpy(cpyfile, homeDir); /* copy filename into the new var */
+	strcat(cpyfile, cli->userid); /* copy filename into the new var */
+	strcat(cpyfile, "/"); /* copy filename into the new var */
+	strcat(cpyfile, fileSend->name); /* copy filename into the new var */
+	strcat(cpyfile, "."); /* copy filename into the new var */
+	strcat(cpyfile, fileSend->extension); /* concatenate extension */
+	copy_file(file, cpyfile);
 
-		createNewFile(cli, fileSend);
+	createNewFile(cli, fileSend);
 	}
 
 	if(DEBUG) fprintf(stderr, "=== FIM UPLOAD ===\n");
@@ -260,29 +273,16 @@ void get_file(char *file)
 
 	fprintf(stderr, "- %s %s\n", fileReceive->name, fileReceive->extension);
 
-	// Envia o comando para o servidor, para iniciar o download
-	struct Request *request = (struct Request*)malloc(sizeof(struct Request));
-	request->cmd = DOWNLOAD;
-	strcpy(request->user, cli->userid);
 
-	if(DEBUG) fprintf(stderr, "- Enviando comando DOWNLOAD\n");
-	n = sendto(sockfd, request, sizeof(struct Request), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-	if(n < 0) fprintf(stderr, "[ERROR]\n");
-
-	//RECEIVE THE ACK FOR THE COMMAND
-	if(DEBUG) fprintf(stderr, "- Aguardando ACK do comando\n");
-	n = recvfrom(sockfd,  request, sizeof(struct Request), 0, (struct sockaddr *) &from, &length);
-	if(n < 0) fprintf(stderr, "[ERROR]\n");
-	if(request->cmd != ACK){
-		fprintf(stderr, "[ERROR] It was not possible execute the command in server\n" );
+	if(send_cmdRequest(DOWNLOAD) == -1){
 		return;
 	}
 
 	if(DEBUG) fprintf(stderr, "- Enviando nome do arquivo\n");
-	n = sendto(sockfd, fileReceive, sizeof(struct File_package), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	n = sendto(cli->sockaction, fileReceive, sizeof(struct File_package), 0,(const struct sockaddr *) &cli->serv_request, sizeof(struct sockaddr_in));
 
 	if(DEBUG) fprintf(stderr, "- Aguardando o pacote de informações\n");
-	n = recvfrom(sockfd, fileReceive, sizeof(struct File_package), 0, (struct sockaddr *) &from, &length);
+	n = recvfrom(cli->sockaction, fileReceive, sizeof(struct File_package), 0, (struct sockaddr *) &cli->serv_response, &length);
 	if(n < 0) fprintf(stderr, "[ERROR]\n");
 	if(fileReceive->size == -1){
 		fprintf(stderr, "[ERROR] Arquivo não existe no servidor\n" );
@@ -311,30 +311,30 @@ void get_file(char *file)
 	int file_size = fileReceive->size;
 
 	if(DEBUG) fprintf(stderr, "- Respondendo com ACK pacote de informações\n");
-	n = sendto(sockfd, request, sizeof(struct Request), MSG_CONFIRM,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	n = sendto(cli->sockaction, request, sizeof(struct Request), MSG_CONFIRM,(const struct sockaddr *) &cli->serv_request, sizeof(struct sockaddr_in));
 	if(n < 0) fprintf(stderr, "[ERROR]\n");
 
 	while (bytesRead < file_size){
 
-		if(DEBUG) fprintf(stderr, "- Aguardando pacote do arquivo\n");
-		n = recvfrom(sockfd, fileReceive, sizeof(struct File_package), 0, (struct sockaddr *) &from, &length);
-		if(n < 0) fprintf(stderr, "[ERROR]\n");
+			if(DEBUG) fprintf(stderr, "- Aguardando pacote do arquivo\n");
+			n = recvfrom(cli->sockaction, fileReceive, sizeof(struct File_package), 0, (struct sockaddr *) &cli->serv_response, &length);
+			if(n < 0) fprintf(stderr, "[ERROR]\n");
 
-		if(DEBUG){
-			printf("\n\nReceived packet from %s:%d\n", inet_ntoa(serv_addr.sin_addr), ntohs(serv_addr.sin_port));
-			printf("Packet Number: %i\n", fileReceive->package);
-			printf("Packet Size Sent: %i\n", (int) strlen(fileReceive->buffer));
-			//printf("Received a datagram:\n%s\n", fileReceive->buffer);
-		}
+			if(DEBUG){
+				printf("\n\nReceived packet from %s:%d\n", inet_ntoa(cli->serv_request.sin_addr), ntohs(cli->serv_request.sin_port));
+				printf("Packet Number: %i\n", fileReceive->package);
+				printf("Packet Size Sent: %i\n", (int) strlen(fileReceive->buffer));
+				//printf("Received a datagram:\n%s\n", fileReceive->buffer);
+			}
 
-		if(DEBUG) fprintf(stderr, "- Escrevendo buffer no arquivo\n");
-		bytesRead += fwrite(fileReceive->buffer , sizeof(char) ,(int) strlen(fileReceive->buffer) , receiveFile );
+			if(DEBUG) fprintf(stderr, "- Escrevendo buffer no arquivo\n");
+			bytesRead += fwrite(fileReceive->buffer , sizeof(char) ,(int) strlen(fileReceive->buffer) , receiveFile );
 
-		bzero(fileReceive->buffer, sizeof(fileReceive->buffer));
-		// Pacote recebido
-		if(DEBUG) fprintf(stderr, "- Respondendo com ACK pacote do arquivo\n");
-		n = sendto(sockfd, request, sizeof(struct Request), MSG_CONFIRM,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		if(n < 0) fprintf(stderr, "[ERROR]\n");
+			bzero(fileReceive->buffer, sizeof(fileReceive->buffer));
+			// Pacote recebido
+			if(DEBUG) fprintf(stderr, "- Respondendo com ACK pacote do arquivo\n");
+			n = sendto(cli->sockaction, request, sizeof(struct Request), MSG_CONFIRM,(const struct sockaddr *) &cli->serv_request, sizeof(struct sockaddr_in));
+			if(n < 0) fprintf(stderr, "[ERROR]\n");
 	}
 
 	fclose(receiveFile);
@@ -342,108 +342,87 @@ void get_file(char *file)
 	if(DEBUG) fprintf(stderr, "=== FIM DOWNLOAD ===\n");
 }
 
-void delete_file(char *file){
+void delete_file(char *file) {
 
-	char path[MAXNAME + sizeof(homeDir)];
-	memset(path, 0, sizeof(path));
+		char path[MAXNAME + sizeof(homeDir)];
+		memset(path, 0, sizeof(path));
 
-	strcat(path, homeDir);
-	strcat(path, cli->userid);
-	strcat(path, "/");
-	strcat(path, file);
-
-	// Envia o comando para o servidor, para iniciar o upload
-	struct Request *request = (struct Request*)malloc(sizeof(struct Request));
-	request->cmd = DELETE;
-	strcpy(request->user, cli->userid);
-
-	strcpy(request->buffer, file);
-	// request->buffer[sizeof(file)] = '\0';
-
-	n = sendto(sockfd, request, sizeof(struct Request), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr));
-	//RECEIVE THE ACK FOR THE COMMAND
-	n = recvfrom(sockfd,  request, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &from, &length);
-	if(request->cmd != ACK){
-		fprintf(stderr, "[ERROR] It was not possible execute the command in server\n" );
-		return;
-	}
-	else{
-		int status = remove(path);
-		if(DEBUG) printf("\n sizeof: %i \t path: %s \t status: %i \n",(int) sizeof(path), path, status);
-		if(status == 0){ //remove file cliente side
-			delete_info_file(cli, file);
-			printf("File ( %s ) deleted sucessfully!\n", file);
-		}
-		else{
-			printf("Error: unable to delete the %s file\n", file);
-		}
-	}
-
-	return;
-}
-
-void list_dir(int local){
-
-	// sync_client();
-	if(local == LIST_SERVER){
-
-		if(DEBUG) fprintf(stderr, "- Enviando comando LIST_SERVER\n");
+		strcat(path, homeDir);
+		strcat(path, cli->userid);
+		strcat(path, "/");
+		strcat(path, file);
 
 		// Envia o comando para o servidor, para iniciar o upload
 		struct Request *request = (struct Request*)malloc(sizeof(struct Request));
-		request->cmd = local;
+		request->cmd = DELETE;
 		strcpy(request->user, cli->userid);
-		n = sendto(sockfd, request, sizeof(struct Request), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr));
 
-		if(DEBUG) fprintf(stderr, "- Aguardando ACK do comando LIST_SERVER\n");
+		strcpy(request->buffer, file);
+		// request->buffer[sizeof(file)] = '\0';
+
+		n = sendto(cli->sockreq, request, sizeof(struct Request), 0,(const struct sockaddr *) &cli->serv_request, sizeof(struct sockaddr));
 		//RECEIVE THE ACK FOR THE COMMAND
-		n = recvfrom(sockfd,  request, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &from, &length);
+		n = recvfrom(cli->sockreq,  request, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &cli->serv_response, &length);
 		if(request->cmd != ACK){
 			fprintf(stderr, "[ERROR] It was not possible execute the command in server\n" );
 			return;
 		}
+		else{
+			int status = remove(path);
+			if(DEBUG) printf("\n sizeof: %i \t path: %s \t status: %i \n",(int) sizeof(path), path, status);
+			if(status == 0){ //remove file cliente side
+				delete_info_file(cli, file);
+				printf("File ( %s ) deleted sucessfully!\n", file);
+			}
+			else{
+				printf("Error: unable to delete the %s file\n", file);
+			}
+		}
 
-		if(DEBUG) fprintf(stderr, "- Aguardando lista de arquivos\n");
-		CLIENT* client = (CLIENT*)malloc(sizeof(CLIENT));
-		n = recvfrom(sockfd, client->file_info, sizeof(client->file_info), MSG_CONFIRM, (struct sockaddr *) &from, &length);
+		return;
+}
 
-		strcpy(client->userid, cli->userid);
-		client->files_qty = 1;
-		show_files(client, 1);
-	}
-	else{
-		show_files(cli, 0);
-	}
+void list_dir(int local) {
+
+		// sync_client();
+		if(local == LIST_SERVER){
+
+			if(DEBUG) fprintf(stderr, "- Enviando comando LIST_SERVER\n");
+
+			if(send_cmdRequest(local) == -1){
+				return;
+			}
+
+			if(DEBUG) fprintf(stderr, "- Aguardando lista de arquivos\n");
+			CLIENT* client = (CLIENT*)malloc(sizeof(CLIENT));
+			n = recvfrom(cli->sockreq, client->file_info, sizeof(client->file_info), MSG_CONFIRM, (struct sockaddr *) &cli->serv_response, &length);
+
+			strcpy(client->userid, cli->userid);
+			client->files_qty = 1;
+			show_files(client, 1);
+		}
+		else{
+			show_files(cli, 0);
+		}
 }
 
 
 
-void close_session(){
+void close_session() {
 
-		if(DEBUG) fprintf(stderr, "- Enviando comando EXIT\n");
-
-		struct Request *request = (struct Request*)malloc(sizeof(struct Request));
-		request->cmd = EXIT;
-		strcpy(request->user, cli->userid);
-
-		n = sendto(sockfd, request, sizeof(struct Request), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		if(n < 0) fprintf(stderr, "[ERROR]\n");
-
-		//RECEIVE THE ACK FOR THE COMMAND
-		if(DEBUG) fprintf(stderr, "- Aguardando ACK do comando\n");
-		n = recvfrom(sockfd,  request, sizeof(struct Request), 0, (struct sockaddr *) &from, &length);
-		if(n < 0) fprintf(stderr, "[ERROR]\n");
-		if(request->cmd != ACK){
-			fprintf(stderr, "[ERROR] It was not possible execute the command in server\n" );
+		if(send_cmdRequest(EXIT) == -1){
 			return;
 		}
-		close(sockfd);
+
+		pthread_exit(&threads[thread_num]);
+
+		close(cli->sockreq);
+		close(cli->sockaction);
 		fprintf(stderr,"Session ended successfully! \n");
 		exit(0);
-
 }
 
-void command_get_func()
+void* command_get_func()
 {
 	int start = 1;
 	while(start){
@@ -488,30 +467,7 @@ void command_get_func()
 			case EXIT: close_session(); break;
 			default: printf("\nINVALID COMMAND \n"); break;
 		}
-		/*
-		// SENDO MESSAGE OF THE USER COMMAND
-		n = sendto(sockfd, user_cmd, strlen(user_cmd) -1, MSG_CONFIRM,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		// RECEIVE THE MESSAGE FROM THE SERVER ABOUT THE USER COMMAND
-		n = recvfrom(sockfd, send_buffer, BUFFER_TAM, MSG_CONFIRM, (struct sockaddr *) &from, &length);
-		fprintf(stderr, "%s\n", send_buffer);
-		bzero(send_buffer, BUFFER_TAM);
 
-		switch(code){
-			case UPLOAD:  break;
-			case DOWNLOAD: get_file(directory); break;
-			case DELETE: delete_file(directory); break;
-			case LIST_SERVER: break;
-			case LIST_CLIENT: break;
-			case GET_SYNC_DIR: break;
-			case EXIT: close_session(); start = 0; break;
-			case ERROR:
-			default: printf("\nINVALID COMMAND \n"); break;
-		}
-
-		memset(user_cmd, 0, sizeof user_cmd);
-		command_code = 0;
-		bzero(send_buffer, BUFFER_TAM);
-		*/
 		printf("\n\nPress enter...\n");
 		char enter = 0;
 		while (enter != '\r' && enter != '\n') {
@@ -529,7 +485,7 @@ int main(int argc, char *argv[]){
 
 	cli = create_and_setClient(argv[1], 0);
 
-	int login = login_server(argv[2], PORT);
+	int login = login_server(argv[2], PORT, cli);
 
 	if(login)
 	{
@@ -538,12 +494,12 @@ int main(int argc, char *argv[]){
 		strcpy(request->user, cli->userid);
 
 		//SEND USER ID TO SERVER
-		n = sendto(sockfd, request, sizeof(struct Request), 0,(const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		n = sendto(cli->sockreq, request, sizeof(struct Request), 0,(const struct sockaddr *) &cli->serv_request, sizeof(struct sockaddr_in));
 		//RECEIVE THE ANSWER FROM THE SERVER
-		n = recvfrom(sockfd,  request, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &from, &length);
-		if(request->cmd != ACK) 
+		n = recvfrom(cli->sockreq,  request, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &cli->serv_response, &length);
+		if(request->cmd != ACK)
 			fprintf(stderr, "[ERROR] It was not possible connect to this server\n" );
-		else{			
+		else{
 			//cria diretório local
 			int dir = get_sync_dir(argv[1]);
 			if(dir == 0) // == 0 Diretório já existe, pode ser sincronizado
@@ -553,13 +509,17 @@ int main(int argc, char *argv[]){
 			// Cria a thred de sincronização do diretório
 			pthread_t sync_thread;
 
-			//int rc = pthread_create(&sync_thread, NULL, sync_client, NULL);
-			//if(rc)
-			//	fprintf(stderr,"A request could not be processed\n");
-
+			// Cria uma nova Thread para resolver o request
+			int cli_thread = pthread_create(&threads[thread_num], NULL, command_get_func, NULL);
+			if(cli_thread) {
+				fprintf(stderr,"A request could not be processed\n");
+			} else {
+				pthread_join(threads[thread_num], NULL) ;
+				thread_num++;
+			}
 			//LOOP para pegar o comando do client
-			command_get_func();
-		}		
+			//command_get_func();
+		}
 	}
 	return 0;
 }

@@ -16,7 +16,7 @@
   @param host endereço do servidor
   @param port porta do servidor
 */
-int login_server(char *host, int port);
+int login_server(char *host, int port, CLIENT* cli);
 
 
 
@@ -26,6 +26,13 @@ int login_server(char *host, int port);
 */
 void *sync_client();
 
+
+/**
+  Send the input command request to server.
+  If 0 = SUCESS
+  If -1 = ACK was not sent by the server.
+*/
+int send_cmdRequest(int cmd);
 
 
 /**

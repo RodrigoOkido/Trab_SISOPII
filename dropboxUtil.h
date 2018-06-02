@@ -78,6 +78,9 @@ typedef struct file_info	{
   logged_in – cliente está logado ou não.
 */
 typedef struct client {
+	struct sockaddr_in serv_request, serv_response;
+	int sockreq;
+	int sockaction;
   int devices[2];
   char userid[UNIQUE_ID];
   FILE_INFO file_info[MAXFILES];
@@ -166,7 +169,17 @@ int parseCommand(char cmd[]);
 int parseFile(struct File_package* file);
 
 
+
+/**
+	Delete the file.
+
+	@param client The client which want to delete.
+	@param nameFile The filename wanted to delete. 
+*/
 void delete_info_file(CLIENT* client, char* namefile);
+
+
+
 /**
  * Create a new file. This function is called when the user wants to upload
  * some file.
