@@ -37,10 +37,14 @@ void showMenu(CLIENT* actualClient) {
 
 }
 
+
+
 void iniciateList(){
     total_client = 0;
     //client_list = malloc(MAXCLIENTS * sizeof(CLIENT));
 }
+
+
 
 CLIENT* create_and_setClient(char* user_id, int isServer) {
 
@@ -109,7 +113,7 @@ CLIENT* create_and_setClient(char* user_id, int isServer) {
 
             createNewFile(&client_list[total_client], fileReceive); //cria o file_info e adiciona na struct cliente
 
-            //TODO sync OR get_file => local folder 
+            //TODO sync OR get_file => local folder
             count++;
           }
 
@@ -117,7 +121,7 @@ CLIENT* create_and_setClient(char* user_id, int isServer) {
 
       }
       closedir (clientDir);
-    } 
+    }
     else{
       //não existe diretório do cliente no servidor
 
@@ -141,7 +145,7 @@ CLIENT* create_and_setClient(char* user_id, int isServer) {
       return &client_list[total_client];
     }
 
-    
+
 }
 
 int logged_device (CLIENT* client, int io){ 
@@ -201,6 +205,8 @@ CLIENT* find_or_createClient(char* userid, int isConnect) {
     }
 }
 
+
+
 int parseCommand (char cmd[]){
 
   	if(strncmp(cmd,"upload",6) == 0){
@@ -240,6 +246,7 @@ int parseCommand (char cmd[]){
 }
 
 
+
 int parseFile(struct File_package* file){
 
     char *word = strtok(file->name,"/");
@@ -258,6 +265,8 @@ int parseFile(struct File_package* file){
     return 0;
 }
 
+
+
 void delete_info_file(CLIENT* client, char* namefile){
   //atualiza quantidade de arquivos
 
@@ -269,7 +278,7 @@ void delete_info_file(CLIENT* client, char* namefile){
   //percorre array de arquivos para fazer match do nome
   for (i = 0; i < MAXFILES ; i++){
 
-    //concat name + . + ext => name.ext 
+    //concat name + . + ext => name.ext
     strcat(arquivo, client->file_info[i].name);
     strcat(arquivo, ".");
     strcat(arquivo, client->file_info[i].extension);
@@ -279,7 +288,7 @@ void delete_info_file(CLIENT* client, char* namefile){
 
       if(DEBUG) {
         fprintf(stderr,"CLIENT INDEX: %i \n",i);
-      }      
+      }
 
       memset(client->file_info[i].name, 0, MAXNAME);
       memset(client->file_info[i].extension, 0, EXT);
@@ -333,6 +342,7 @@ int createNewFile(CLIENT* actualClient, struct File_package* file){
 }
 
 
+
 int get_sync_dir(char* userId){
     char aux[MAXNAME + sizeof(homeDir)];
     memset(aux, 0, sizeof(aux));
@@ -349,6 +359,8 @@ int get_sync_dir(char* userId){
     return 1; //Pasta foi criada tudo OK
 
 }
+
+
 
 void show_files(CLIENT * client, int isServer){
 
@@ -370,7 +382,7 @@ void show_files(CLIENT * client, int isServer){
     }
   }
 
-  if(j == 0) printf("\t no files in struct \n \n"); 
+  if(j == 0) printf("\t no files in struct \n \n");
 }
 
 
@@ -387,7 +399,7 @@ int copy_file(char *old_filename, char  *new_filename)
         printf("Cannot open file %s \n", old_filename);
         return -1;;
     }
- 
+
     // Open another file for writing
     fptr2 = fopen(new_filename, "w");
     if (fptr2 == NULL)
@@ -395,7 +407,7 @@ int copy_file(char *old_filename, char  *new_filename)
         printf("Cannot open file %s \n", new_filename);
         return -1;
     }
- 
+
     // Read contents from file
     c = fgetc(fptr1);
     while (c != EOF)
@@ -403,9 +415,9 @@ int copy_file(char *old_filename, char  *new_filename)
         fputc(c, fptr2);
         c = fgetc(fptr1);
     }
- 
+
     printf("\nContents copied to %s", new_filename);
- 
+
     fclose(fptr1);
     fclose(fptr2);
     return  0;
