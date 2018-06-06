@@ -93,9 +93,9 @@ void *sync_client() {
 				perror("inotify_init");
 	}
 
-	watchList = inotify_add_watch (fd, serverDir, IN_CREATE | IN_DELETE | IN_MODIFY | IN_CLOSE_WRITE | IN_MOVED_FROM); // por enquanto ve apenas se foi criado arquivo, deletado ou modificado
+	watchList = inotify_add_watch (fd, path, IN_CREATE | IN_DELETE | IN_MODIFY | IN_CLOSE_WRITE | IN_MOVED_FROM); // por enquanto ve apenas se foi criado arquivo, deletado ou modificado
 
-	//while (1) { //fica verificando se alterou o diretorio
+	while (1) { //fica verificando se alterou o diretorio
 		length = read(fd, buffer, EVENT_BUF_LEN);
 		fprintf(stderr,"[sync_client]\n");
 
@@ -111,19 +111,22 @@ void *sync_client() {
 				if ( event->mask & IN_CREATE || event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO) {
 
 
-					strcat(serverpath, event->name);   //teve alteracao no server?
+					strcat(path, event->name);   //teve alteracao no server?
 					if( (fopen(path, "r")) == NULL ) {
-
-					   printf("ERROR: File not found.\n");
+					 //  printf()
+					   printf("ERROR: File not found. %s\n", path);
 					}
 					else {
+						printf("%s", path);
+						
+						 printf( "New file %s created.\n", event->name );
 						send_file(path);
-						// printf( "New file %s created.\n", event->name );
 					}
 				}
 
 				else if ( event->mask & IN_DELETE  || event->mask & IN_MOVED_FROM) {
 					strcat(path, event->name);
+											printf("aqui 2\n");
 					delete_file (path);
 					printf( "File %s deleted.\n", event->name );
 				}
@@ -134,8 +137,8 @@ void *sync_client() {
 		}
 
 		i = 0;
-	//	sleep(10); //verificar a cada 10 segundos
-	//}
+		sleep(10); //verificar a cada 10 segundos
+	}
 
 }
 
@@ -384,7 +387,7 @@ void delete_file(char *file) {
 
 void list_dir(int local) {
 
-		// sync_client();
+		//sync_client();
 		if(local == LIST_SERVER){
 
 			if(DEBUG) fprintf(stderr, "- Enviando comando LIST_SERVER\n");
@@ -507,12 +510,21 @@ int main(int argc, char *argv[]){
 			if(dir == -2) exit(dir);
 
 			// Cria a thred de sincronização do diretório
-			pthread_t sync_thread;
+			//pthread_t sync_thread;
 
 			// Cria uma nova Thread para resolver o request
 			int cli_thread = pthread_create(&threads[thread_num], NULL, command_get_func, NULL);
+			int sync_thread = pthread_create(&threads[thread_num], NULL, sync_client(), NULL);
+
 			if(cli_thread) {
 				fprintf(stderr,"A request could not be processed\n");
+			} else {
+				pthread_join(threads[thread_num], NULL) ;
+				thread_num++;
+			}
+
+			if(sync_thread) {
+				fprintf(stderr,"Error syncr");
 			} else {
 				pthread_join(threads[thread_num], NULL) ;
 				thread_num++;
