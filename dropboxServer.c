@@ -40,7 +40,7 @@ void receive_file(char* userid) {
 	n = recvfrom(sockfd, fileReceive, sizeof(struct File_package), 0, (struct sockaddr *) &cli_addr, &newClilen);
 	if(n < 0) fprintf(stderr, "[ERROR]\n");
 
-	CLIENT *client = find_or_createClient(userid, 0);
+	CLIENT *client = find_or_createClient(userid);
 
 	createNewFile(client, fileReceive);
 
@@ -230,15 +230,17 @@ int main(int argc, char *argv[])
 		answer->cmd = ACK;
 		switch(request->cmd){
 			case CONNECT:
-					actualClient = find_or_createClient(request->user, 1);
-					if(actualClient != NULL){
+					actualClient = find_or_createClient(request->user);
+
+					if (logged_device(actualClient, 1)){
 						fprintf(stderr,"User: %s connected\n", actualClient->userid);
 					}
 					else{
+						fprintf(stderr, "\n \t Unable to login more devices \n");
 						answer->cmd = ERROR;
 						fprintf(stderr,"User: %s ERROR to connect\n", actualClient->userid);
-
 					}
+
 					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 					break;
 
@@ -262,7 +264,7 @@ int main(int argc, char *argv[])
 					if(DEBUG) fprintf(stderr, "- LIST_SERVER: Respondendo o comando com ACK\n");
 					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 
-					CLIENT* client = find_or_createClient(request->user, 0);
+					CLIENT* client = find_or_createClient(request->user);
 
 					if(DEBUG) show_files(client, 1);
 
@@ -274,7 +276,7 @@ int main(int argc, char *argv[])
 					break;
 			case GET_SYNC_DIR: break;
 			case EXIT:
-					actualClient = find_or_createClient(request->user, 0);
+					actualClient = find_or_createClient(request->user);
 					logged_device(actualClient, 0);
 					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 					fprintf(stderr,"User: %s disconnected!\n", actualClient->userid);
@@ -305,17 +307,18 @@ void *handle_request(void *req)
 	answer->cmd = ACK;
 	switch(request->cmd){
 		case CONNECT:
-				actualClient = find_or_createClient(request->user, 1);
+				actualClient = find_or_createClient(request->user);
 
-				if(actualClient != NULL){
+				if (logged_device(actualClient, 1)){
 					fprintf(stderr,"User: %s connected\n", actualClient->userid);
 				}
 				else{
-					fprintf(stderr,"Error to connect user \n");
+					fprintf(stderr, "\n \t Unable to login more devices \n");
 					answer->cmd = ERROR;
+					fprintf(stderr,"User: %s ERROR to connect\n", actualClient->userid);
 				}
-				n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 
+				n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 				break;
 
 		case UPLOAD:

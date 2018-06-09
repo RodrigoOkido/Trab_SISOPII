@@ -56,7 +56,7 @@ CLIENT* create_and_setClient(char* user_id, int isServer) {
     int count;
 
     //Inicialization of this new Client.
-    client_list[total_client].devices[0]= 1;
+    client_list[total_client].devices[0]= 0;
     client_list[total_client].devices[1]= 0;
     char id [strlen(user_id)];
     strcpy( id, user_id);
@@ -169,7 +169,7 @@ int logged_device (CLIENT* client, int io){
   return 0; //error
 }
 
-CLIENT* find_or_createClient(char* userid, int isConnect) {
+CLIENT* find_or_createClient(char* userid) {
 
     int i;
 
@@ -183,16 +183,7 @@ CLIENT* find_or_createClient(char* userid, int isConnect) {
             if(DEBUG) {
                 fprintf(stderr,"\nCLIENT INDEX: %i\n\n",i);
             }
-            
-            if(isConnect){
-              if (logged_device(&client_list[i], 1)){
-                return &client_list[i];
-              }
-              else{
-                fprintf(stderr, "\n \t Unable to login more devices \n");
-                return NULL;
-              }
-            }
+           return &client_list[i];
         }
     }
 

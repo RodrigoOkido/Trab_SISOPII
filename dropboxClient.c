@@ -500,8 +500,10 @@ int main(int argc, char *argv[]){
 		n = sendto(cli->sockreq, request, sizeof(struct Request), 0,(const struct sockaddr *) &cli->serv_request, sizeof(struct sockaddr_in));
 		//RECEIVE THE ANSWER FROM THE SERVER
 		n = recvfrom(cli->sockreq,  request, sizeof(struct Request), MSG_CONFIRM, (struct sockaddr *) &cli->serv_response, &length);
-		if(request->cmd != ACK)
+		if(request->cmd != ACK){
 			fprintf(stderr, "[ERROR] It was not possible connect to this server\n" );
+			close_session();
+		}
 		else{
 			//cria diretório local
 			int dir = get_sync_dir(argv[1]);

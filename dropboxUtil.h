@@ -145,7 +145,7 @@ CLIENT* create_and_setClient(char* user_id, int isServer);
   @return >= 0 The client exist and is set (Returning the index of him in the list)
   @return < 0 The client dont exist.
 */
-CLIENT* find_or_createClient(char* userid, int isConnect);
+CLIENT* find_or_createClient(char* userid);
 
 
 
