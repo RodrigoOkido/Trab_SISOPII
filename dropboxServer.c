@@ -180,8 +180,6 @@ void sendFile(char* userid){
 
 void delete_file_request(char * user, char * file){
 
-	//CLIENT* client = find_or_createClient(user);
-
 	char path[MAXNAME + sizeof(serverDir)];
 	memset(path, 0, sizeof(path));
 
@@ -233,8 +231,17 @@ int main(int argc, char *argv[])
 		switch(request->cmd){
 			case CONNECT:
 					actualClient = find_or_createClient(request->user);
+
+					if (logged_device(actualClient, 1)){
+						fprintf(stderr,"User: %s connected\n", actualClient->userid);
+					}
+					else{
+						fprintf(stderr, "\n \t Unable to login more devices \n");
+						answer->cmd = ERROR;
+						fprintf(stderr,"User: %s ERROR to connect\n", actualClient->userid);
+					}
+
 					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
-					fprintf(stderr,"User: %s connected\n", actualClient->userid);
 					break;
 
 			case UPLOAD:
@@ -269,6 +276,8 @@ int main(int argc, char *argv[])
 					break;
 			case GET_SYNC_DIR: break;
 			case EXIT:
+					actualClient = find_or_createClient(request->user);
+					logged_device(actualClient, 0);
 					n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 					fprintf(stderr,"User: %s disconnected!\n", actualClient->userid);
 			 		break;
@@ -299,8 +308,17 @@ void *handle_request(void *req)
 	switch(request->cmd){
 		case CONNECT:
 				actualClient = find_or_createClient(request->user);
+
+				if (logged_device(actualClient, 1)){
+					fprintf(stderr,"User: %s connected\n", actualClient->userid);
+				}
+				else{
+					fprintf(stderr, "\n \t Unable to login more devices \n");
+					answer->cmd = ERROR;
+					fprintf(stderr,"User: %s ERROR to connect\n", actualClient->userid);
+				}
+
 				n = sendto(sockfd, answer, sizeof(struct Request), MSG_CONFIRM,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
-				fprintf(stderr,"User: %s connected\n", actualClient->userid);
 				break;
 
 		case UPLOAD:
