@@ -26,7 +26,7 @@ int thread_num = 0;
 
 
 CLIENT* cli;
-
+/*
 void startNotify () {
 
 	notifyStart = inotify_init();
@@ -34,6 +34,8 @@ void startNotify () {
 	watchList = inotify_add_watch (notifyStart, directory, IN_CREATE | IN_DELETE | IN_MODIFY | IN_CLOSE_WRITE | IN_MOVED_FROM); // por enquanto ve apenas se foi criado arquivo, deletado ou modificado
 
 }
+
+*/
 
 
 
@@ -62,12 +64,9 @@ int login_server(char *host, int port, CLIENT* cli) {
 	return 1;
 }
 
-
-
 void *sync_client() {
 
-	notifyStart = inotify_init();
-
+	
 
 
 	int length, i = 0;
@@ -79,13 +78,19 @@ void *sync_client() {
 	strcat(path, homeDir);
 	strcat(path, cli->userid);
 	strcat(path, "/");
-
+/*
 	char serverpath[MAXNAME + sizeof(serverDir)];
 	memset(serverpath, 0, sizeof(serverpath));
 
 	strcat(serverpath, serverDir);
 	strcat(serverpath, cli->userid);
 	strcat(serverpath, "/");
+*/
+
+	char auxPath[MAXNAME + sizeof(homeDir)];
+	memset(auxPath, 0, sizeof(auxPath));
+
+	notifyStart = inotify_init();
 
 	fd = inotify_init();
 
@@ -96,9 +101,14 @@ void *sync_client() {
 	watchList = inotify_add_watch (fd, path, IN_CREATE | IN_DELETE | IN_MODIFY | IN_CLOSE_WRITE | IN_MOVED_FROM); // por enquanto ve apenas se foi criado arquivo, deletado ou modificado
 
 	while (1) { //fica verificando se alterou o diretorio
+
+
+
+
 		length = read(fd, buffer, EVENT_BUF_LEN);
 		fprintf(stderr,"[sync_client]\n");
 
+		
 		if (length < 0) {
 			perror( "read" );
 		}
@@ -110,17 +120,18 @@ void *sync_client() {
 			if ( event->len ) {
 				if ( event->mask & IN_CREATE || event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO) {
 
-
-					strcat(path, event->name);   //teve alteracao no server?
+					strcpy(auxPath,path);
+					strcat(auxPath, event->name); 
+					//strcat(path, event->name);   //teve alteracao no server?
 					if( (fopen(path, "r")) == NULL ) {
 					 //  printf()
-					   printf("ERROR: File not found. %s\n", path);
+					   printf("ERROR: File not found. %s\n", auxPath);
 					}
 					else {
-						printf("%s", path);
+						printf("%s", auxPath);
 						
 						 printf( "New file %s created.\n", event->name );
-						send_file(path);
+						send_file(auxPath);
 					}
 				}
 
@@ -141,6 +152,8 @@ void *sync_client() {
 	}
 
 }
+
+
 
 int send_cmdRequest(int cmd){
 		request = (struct Request*)malloc(sizeof(struct Request));
