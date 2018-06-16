@@ -66,7 +66,7 @@ int login_server(char *host, int port, CLIENT* cli) {
 
 void *sync_client() {
 
-	
+
 
 
 	int length, i = 0;
@@ -108,7 +108,7 @@ void *sync_client() {
 		length = read(fd, buffer, EVENT_BUF_LEN);
 		fprintf(stderr,"[sync_client]\n");
 
-		
+
 		if (length < 0) {
 			perror( "read" );
 		}
@@ -121,7 +121,7 @@ void *sync_client() {
 				if ( event->mask & IN_CREATE || event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO) {
 
 					strcpy(auxPath,path);
-					strcat(auxPath, event->name); 
+					strcat(auxPath, event->name);
 					//strcat(path, event->name);   //teve alteracao no server?
 					if( (fopen(path, "r")) == NULL ) {
 					 //  printf()
@@ -129,7 +129,7 @@ void *sync_client() {
 					}
 					else {
 						printf("%s", auxPath);
-						
+
 						 printf( "New file %s created.\n", event->name );
 						send_file(auxPath);
 					}
@@ -430,10 +430,13 @@ void close_session() {
 			return;
 		}
 
-		pthread_exit(&threads[thread_num]);
+		pthread_exit(&threads[thread_num-1]);
+		pthread_exit(&threads[thread_num-2]);
 
 		close(cli->sockreq);
 		close(cli->sockaction);
+
+
 		fprintf(stderr,"Session ended successfully! \n");
 		exit(0);
 }
@@ -521,7 +524,7 @@ int main(int argc, char *argv[]){
 			//cria diretório local
 			int dir = get_sync_dir(argv[1]);
 			if(dir == 0) // == 0 Diretório já existe, pode ser sincronizado
-			// sync_client(); //Sync client files with the server
+			  //sync_client(); //Sync client files with the server
 			if(dir == -2) exit(dir);
 
 			// Cria a thred de sincronização do diretório
@@ -529,8 +532,8 @@ int main(int argc, char *argv[]){
 
 			// Cria uma nova Thread para resolver o request
 			int cli_thread = pthread_create(&threads[thread_num], NULL, command_get_func, NULL);
-			int sync_thread = pthread_create(&threads[thread_num], NULL, sync_client(), NULL);
 
+			//
 			if(cli_thread) {
 				fprintf(stderr,"A request could not be processed\n");
 			} else {
@@ -538,6 +541,8 @@ int main(int argc, char *argv[]){
 				thread_num++;
 			}
 
+			int sync_thread = pthread_create(&threads[thread_num], NULL, sync_client(), NULL);
+			
 			if(sync_thread) {
 				fprintf(stderr,"Error syncr");
 			} else {
