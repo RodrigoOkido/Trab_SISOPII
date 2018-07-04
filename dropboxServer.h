@@ -30,3 +30,6 @@ void receive_file(char* userid);
 void sendFile(char* userid);
 
 void *handle_request();
+
+void *handle_replication(void *type);
+

@@ -4,8 +4,8 @@ all: dropbox
 
 dropbox: dropboxServer.o dropboxClient.o dropboxUtil.o
 
-dropboxServer.o: dropboxServer.c dropboxUtil.c
-	gcc -pthread -o dropboxServer dropboxServer.c dropboxUtil.c
+dropboxServer.o: dropboxServer.c dropboxUtil.c election.c
+	gcc -pthread -o dropboxServer dropboxServer.c dropboxUtil.c election.c
 
 dropboxClient.o: dropboxClient.c dropboxUtil.c
 	gcc -pthread -o dropboxClient dropboxClient.c dropboxUtil.c

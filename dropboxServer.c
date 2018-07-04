@@ -8,6 +8,7 @@
 #include "dropboxUtil.h"
 #include "dropboxServer.h"
 #include "dropboxClient.h"
+#include "election.h"
 #include <sys/stat.h>
 #include <pthread.h>
 
@@ -209,22 +210,36 @@ void delete_file_request(char * user, char * file){
 
 int main(int argc, char *argv[])
 {
-// Executa a operação de abrir o socket
+	if(argc < 3){printf("\n\n---------------| to use |--------------\n\n ./dropboxServer b {IP PRIMARY} \n\n--------------------------------------------------\n"); exit(1);}
+	// Executa a operação de abrir o socket
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
 		printf("[ERROR] Socket cannot be opened.");
 
+	int port = 4000;
+	int type;
+		printf("type = %d \n", type);
+
+	THREAD_ARG argument[1]; 
+	if(strcmp("p", argv[1])==0){
+		type = PRIMARY;
+	}
+	if(strcmp("b", argv[1])==0){
+		type = BACKUP;
+	}
+
+	argument[0].type = type;
+	argument[0].address = argv[2];
 
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(PORT);
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
 	bzero(&(serv_addr.sin_zero), 8);
 
-
 	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) < 0)
-		printf("[ERROR] Could not Bind");
+		printf("[ERROR] Could not Bind\n");
 
-
-
+	pthread_create(&threads[thread_no], NULL, handle_replication, &(argument[0]));
+	thread_no++;
 
 	// Cria uma nova Thread para resolver o request
 	int rc = pthread_create(&threads[thread_no], NULL, handle_request, NULL);
@@ -235,6 +250,14 @@ int main(int argc, char *argv[])
 		thread_no++;
 
 
+}
+
+void *handle_replication(void *type)
+{
+	p_THREAD_ARG args = (p_THREAD_ARG) type;
+	printf("type = %d \n", args->type);
+	if(DEBUG) fprintf(stderr, "[Thread replication] init \n");
+	initConfigOfElection(args->type, args->address);
 }
 
 void *handle_request(void *req)

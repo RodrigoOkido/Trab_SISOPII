@@ -56,7 +56,7 @@ int login_server(char *host, int port, CLIENT* cli) {
  	}
 
 	cli->serv_request.sin_family = AF_INET;
-	cli->serv_request.sin_port = htons(PORT);
+	cli->serv_request.sin_port = htons(port);
 	cli->serv_request.sin_addr = *((struct in_addr *)server->h_addr);
 
 	bzero(&(cli->serv_request.sin_zero), 8);
@@ -504,7 +504,7 @@ int main(int argc, char *argv[]){
 
 	cli = create_and_setClient(argv[1], 0);
 
-	int login = login_server(argv[2], PORT, cli);
+	int login = login_server(argv[2], atoi(argv[3]), cli);
 
 	if(login)
 	{

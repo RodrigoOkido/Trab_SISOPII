@@ -30,7 +30,7 @@
 #define UNIQUE_ID   10
 #define EXT         6
 #define DATE        18
-#define MAXCLIENTS  150
+#define MAXCLIENTS  10
 
 //parseCommands
 #define UPLOAD        1
